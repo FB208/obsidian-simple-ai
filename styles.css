@@ -220,6 +220,167 @@
 	}
 }
 
+/* 浮动AI按钮样式 */
+.floating-ai-button {
+	font-family: var(--font-interface);
+	user-select: none;
+	animation: fadeInScale 0.2s ease-out;
+}
+
+.floating-ai-main-button {
+	display: flex;
+	align-items: center;
+	padding: 8px 12px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 20px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	cursor: pointer;
+	color: var(--text-normal);
+	font-size: 14px;
+	font-weight: 500;
+	transition: all 0.2s ease;
+	backdrop-filter: blur(8px);
+	min-width: 44px;
+	height: 36px;
+	justify-content: center;
+}
+
+.floating-ai-main-button:hover {
+	background: var(--background-modifier-hover);
+	border-color: var(--interactive-accent);
+	transform: translateY(-1px);
+	box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.floating-ai-main-button:active {
+	transform: translateY(0);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.floating-ai-main-button svg {
+	flex-shrink: 0;
+}
+
+.floating-ai-menu {
+	position: absolute;
+	top: calc(100% + 8px);
+	left: 0;
+	min-width: 160px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+	backdrop-filter: blur(8px);
+	padding: 4px;
+	z-index: 10001;
+	animation: fadeInUp 0.2s ease;
+}
+
+.floating-ai-menu-item {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	padding: 8px 12px;
+	background: none;
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	color: var(--text-normal);
+	font-size: 14px;
+	text-align: left;
+	transition: background-color 0.15s ease;
+}
+
+.floating-ai-menu-item:hover {
+	background: var(--background-modifier-hover);
+}
+
+.floating-ai-menu-item-icon {
+	margin-right: 8px;
+	font-size: 16px;
+	width: 20px;
+	display: flex;
+	justify-content: center;
+}
+
+.floating-ai-menu-item-text {
+	flex: 1;
+	font-weight: 500;
+}
+
+/* 动画效果 */
+@keyframes fadeInUp {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes fadeInScale {
+	from {
+		opacity: 0;
+		transform: scale(0.8);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+/* 加载状态动画 */
+.floating-ai-main-button.processing {
+	animation: pulse 1.5s infinite;
+	pointer-events: none;
+}
+
+.floating-ai-main-button.processing::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	border-radius: inherit;
+	background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+	animation: shimmer 1s infinite;
+}
+
+@keyframes shimmer {
+	0% {
+		transform: translateX(-100%);
+	}
+	100% {
+		transform: translateX(100%);
+	}
+}
+
+/* 深色主题优化 */
+.theme-dark .floating-ai-main-button {
+	background: rgba(30, 30, 30, 0.9);
+	border-color: rgba(255, 255, 255, 0.1);
+}
+
+.theme-dark .floating-ai-menu {
+	background: rgba(30, 30, 30, 0.9);
+	border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 浅色主题优化 */
+.theme-light .floating-ai-main-button {
+	background: rgba(255, 255, 255, 0.9);
+	border-color: rgba(0, 0, 0, 0.1);
+}
+
+.theme-light .floating-ai-menu {
+	background: rgba(255, 255, 255, 0.9);
+	border-color: rgba(0, 0, 0, 0.1);
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
 	.simple-ai-modal-container {
@@ -252,5 +413,21 @@
 	.simple-ai-result-btn {
 		flex: 1;
 		text-align: center;
+	}
+
+	/* 移动端浮动按钮优化 */
+	.floating-ai-main-button {
+		padding: 10px 14px;
+		min-width: 48px;
+		height: 40px;
+	}
+	
+	.floating-ai-menu {
+		min-width: 180px;
+	}
+	
+	.floating-ai-menu-item {
+		padding: 12px 16px;
+		font-size: 16px;
 	}
 }

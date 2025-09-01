@@ -1217,7 +1217,7 @@ var require_react_development = __commonJS({
           }
           return dispatcher.useContext(Context);
         }
-        function useState2(initialState) {
+        function useState3(initialState) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useState(initialState);
         }
@@ -1229,7 +1229,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
-        function useEffect(create, deps) {
+        function useEffect2(create, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useEffect(create, deps);
         }
@@ -2012,7 +2012,7 @@ var require_react_development = __commonJS({
         exports.useContext = useContext;
         exports.useDebugValue = useDebugValue;
         exports.useDeferredValue = useDeferredValue;
-        exports.useEffect = useEffect;
+        exports.useEffect = useEffect2;
         exports.useId = useId;
         exports.useImperativeHandle = useImperativeHandle;
         exports.useInsertionEffect = useInsertionEffect;
@@ -2020,7 +2020,7 @@ var require_react_development = __commonJS({
         exports.useMemo = useMemo;
         exports.useReducer = useReducer;
         exports.useRef = useRef;
-        exports.useState = useState2;
+        exports.useState = useState3;
         exports.useSyncExternalStore = useSyncExternalStore;
         exports.useTransition = useTransition;
         exports.version = ReactVersion;
@@ -2516,9 +2516,9 @@ var require_react_dom_development = __commonJS({
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === "function") {
           __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(new Error());
         }
-        var React2 = require_react();
+        var React4 = require_react();
         var Scheduler = require_scheduler();
-        var ReactSharedInternals = React2.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+        var ReactSharedInternals = React4.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
         var suppressWarning = false;
         function setSuppressWarning(newSuppressWarning) {
           {
@@ -4123,7 +4123,7 @@ var require_react_dom_development = __commonJS({
           {
             if (props.value == null) {
               if (typeof props.children === "object" && props.children !== null) {
-                React2.Children.forEach(props.children, function(child) {
+                React4.Children.forEach(props.children, function(child) {
                   if (child == null) {
                     return;
                   }
@@ -23204,7 +23204,7 @@ var require_react_dom_development = __commonJS({
             unmarkContainerAsRoot(container);
           }
         };
-        function createRoot2(container, options2) {
+        function createRoot3(container, options2) {
           if (!isValidContainer(container)) {
             throw new Error("createRoot(...): Target container is not a DOM element.");
           }
@@ -23587,7 +23587,7 @@ var require_react_dom_development = __commonJS({
               error('You are importing createRoot from "react-dom" which is not supported. You should instead import it from "react-dom/client".');
             }
           }
-          return createRoot2(container, options2);
+          return createRoot3(container, options2);
         }
         function hydrateRoot$1(container, initialChildren, options2) {
           {
@@ -23692,7 +23692,7 @@ var require_react_jsx_runtime_development = __commonJS({
     if (true) {
       (function() {
         "use strict";
-        var React2 = require_react();
+        var React4 = require_react();
         var REACT_ELEMENT_TYPE = Symbol.for("react.element");
         var REACT_PORTAL_TYPE = Symbol.for("react.portal");
         var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
@@ -23718,7 +23718,7 @@ var require_react_jsx_runtime_development = __commonJS({
           }
           return null;
         }
-        var ReactSharedInternals = React2.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+        var ReactSharedInternals = React4.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
         function error(format) {
           {
             {
@@ -24568,11 +24568,11 @@ var require_react_jsx_runtime_development = __commonJS({
             return jsxWithValidation(type, props, key, false);
           }
         }
-        var jsx3 = jsxWithValidationDynamic;
-        var jsxs2 = jsxWithValidationStatic;
+        var jsx4 = jsxWithValidationDynamic;
+        var jsxs3 = jsxWithValidationStatic;
         exports.Fragment = REACT_FRAGMENT_TYPE;
-        exports.jsx = jsx3;
-        exports.jsxs = jsxs2;
+        exports.jsx = jsx4;
+        exports.jsxs = jsxs3;
       })();
     }
   }
@@ -24596,7 +24596,7 @@ __export(main_exports, {
   default: () => SimpleAIPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian3 = require("obsidian");
+var import_obsidian4 = require("obsidian");
 
 // src/settings.ts
 var import_obsidian = require("obsidian");
@@ -24636,6 +24636,15 @@ var SimpleAISettingTab = class extends import_obsidian.PluginSettingTab {
       this.plugin.settings.systemPrompt = value;
       await this.plugin.saveSettings();
     }));
+    containerEl.createEl("h3", { text: "AI\u6A21\u677F\u8BBE\u7F6E" });
+    containerEl.createEl("p", {
+      text: "\u914D\u7F6E\u53F3\u952E\u83DC\u5355\u4E2D\u663E\u793A\u7684AI\u529F\u80FD\u6A21\u677F\uFF0C\u53EF\u4EE5\u6DFB\u52A0\u3001\u7F16\u8F91\u6216\u5220\u9664\u6A21\u677F\u3002",
+      cls: "setting-item-description"
+    });
+    this.displayTemplates(containerEl);
+    new import_obsidian.Setting(containerEl).setName("\u6DFB\u52A0\u65B0\u6A21\u677F").setDesc("\u521B\u5EFA\u4E00\u4E2A\u65B0\u7684AI\u5904\u7406\u6A21\u677F").addButton((button) => button.setButtonText("\u6DFB\u52A0\u6A21\u677F").onClick(() => {
+      this.addNewTemplate();
+    }));
     new import_obsidian.Setting(containerEl).setName("\u6D4B\u8BD5\u8FDE\u63A5").setDesc("\u6D4B\u8BD5API\u8FDE\u63A5\u662F\u5426\u6B63\u5E38").addButton((button) => button.setButtonText("\u6D4B\u8BD5\u8FDE\u63A5").setCta().onClick(async () => {
       await this.testConnection();
     }));
@@ -24667,6 +24676,82 @@ var SimpleAISettingTab = class extends import_obsidian.PluginSettingTab {
       button.textContent = originalText;
       button.disabled = false;
     }
+  }
+  // 显示AI模板列表
+  displayTemplates(containerEl) {
+    const templatesContainer = containerEl.createDiv("templates-container");
+    this.plugin.settings.templates.forEach((template, index) => {
+      const templateEl = templatesContainer.createDiv("template-setting");
+      new import_obsidian.Setting(templateEl).setName(template.name).setDesc(`\u63D0\u793A\u8BCD: ${template.prompt.substring(0, 50)}...`).addToggle((toggle) => toggle.setValue(template.enabled).onChange(async (value) => {
+        this.plugin.settings.templates[index].enabled = value;
+        await this.plugin.saveSettings();
+      })).addButton((button) => button.setButtonText("\u7F16\u8F91").onClick(() => {
+        this.editTemplate(index);
+      })).addButton((button) => button.setButtonText("\u5220\u9664").setWarning().onClick(async () => {
+        this.plugin.settings.templates.splice(index, 1);
+        await this.plugin.saveSettings();
+        this.display();
+      }));
+    });
+  }
+  // 添加新模板
+  addNewTemplate() {
+    const newTemplate = {
+      id: `template_${Date.now()}`,
+      name: "\u65B0\u6A21\u677F",
+      prompt: "\u8BF7\u5904\u7406\u4EE5\u4E0B\u6587\u672C\uFF1A",
+      icon: "bot",
+      enabled: true
+    };
+    this.plugin.settings.templates.push(newTemplate);
+    this.editTemplate(this.plugin.settings.templates.length - 1);
+  }
+  // 编辑模板
+  editTemplate(index) {
+    const template = this.plugin.settings.templates[index];
+    const modal = new TemplateEditModal(this.app, template, async (updatedTemplate) => {
+      this.plugin.settings.templates[index] = updatedTemplate;
+      await this.plugin.saveSettings();
+      this.display();
+    });
+    modal.open();
+  }
+};
+var TemplateEditModal = class extends import_obsidian.Modal {
+  constructor(app, template, onSave) {
+    super(app);
+    this.template = { ...template };
+    this.onSave = onSave;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h2", { text: "\u7F16\u8F91AI\u6A21\u677F" });
+    new import_obsidian.Setting(contentEl).setName("\u6A21\u677F\u540D\u79F0").setDesc("\u5728\u53F3\u952E\u83DC\u5355\u4E2D\u663E\u793A\u7684\u540D\u79F0").addText((text) => text.setValue(this.template.name).onChange((value) => {
+      this.template.name = value;
+    }));
+    new import_obsidian.Setting(contentEl).setName("\u56FE\u6807").setDesc("\u83DC\u5355\u9879\u7684\u56FE\u6807\u540D\u79F0").addText((text) => text.setValue(this.template.icon).onChange((value) => {
+      this.template.icon = value;
+    }));
+    new import_obsidian.Setting(contentEl).setName("\u63D0\u793A\u8BCD").setDesc("\u53D1\u9001\u7ED9AI\u7684\u6307\u4EE4\uFF0C\u6587\u672C\u5185\u5BB9\u4F1A\u9644\u52A0\u5728\u63D0\u793A\u8BCD\u540E\u9762").addTextArea((text) => text.setValue(this.template.prompt).onChange((value) => {
+      this.template.prompt = value;
+    }));
+    const buttonContainer = contentEl.createDiv("modal-button-container");
+    buttonContainer.style.display = "flex";
+    buttonContainer.style.justifyContent = "flex-end";
+    buttonContainer.style.gap = "10px";
+    buttonContainer.style.marginTop = "20px";
+    const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
+    cancelButton.onclick = () => this.close();
+    const saveButton = buttonContainer.createEl("button", { text: "\u4FDD\u5B58", cls: "mod-cta" });
+    saveButton.onclick = async () => {
+      await this.onSave(this.template);
+      this.close();
+    };
+  }
+  onClose() {
+    const { contentEl } = this;
+    contentEl.empty();
   }
 };
 
@@ -24943,20 +25028,366 @@ var SimpleAIModal = class extends import_obsidian2.Modal {
 };
 
 // src/types.ts
+var DEFAULT_TEMPLATES = [
+  {
+    id: "expand",
+    name: "\u6269\u5199",
+    prompt: "\u8BF7\u6269\u5C55\u4EE5\u4E0B\u6587\u672C\uFF0C\u6DFB\u52A0\u66F4\u591A\u7EC6\u8282\u3001\u4F8B\u5B50\u548C\u89E3\u91CA\uFF0C\u4F7F\u5185\u5BB9\u66F4\u52A0\u4E30\u5BCC\u548C\u5B8C\u6574\uFF1A",
+    icon: "expand",
+    enabled: true
+  },
+  {
+    id: "rewrite",
+    name: "\u6539\u5199",
+    prompt: "\u8BF7\u6539\u5199\u4EE5\u4E0B\u6587\u672C\uFF0C\u4FDD\u6301\u539F\u610F\u4E0D\u53D8\uFF0C\u4F46\u4F7F\u7528\u4E0D\u540C\u7684\u8868\u8FBE\u65B9\u5F0F\uFF0C\u4F7F\u8BED\u8A00\u66F4\u52A0\u6D41\u7545\u548C\u4F18\u96C5\uFF1A",
+    icon: "edit",
+    enabled: true
+  },
+  {
+    id: "translate",
+    name: "\u7FFB\u8BD1",
+    prompt: "\u8BF7\u5C06\u4EE5\u4E0B\u6587\u672C\u7FFB\u8BD1\u6210\u82F1\u8BED\uFF0C\u4FDD\u6301\u539F\u610F\u548C\u8BED\u6C14\uFF1A",
+    icon: "globe",
+    enabled: true
+  }
+];
 var DEFAULT_SETTINGS = {
   baseUrl: "https://api.openai.com/v1",
   apiKey: "",
   model: "gpt-3.5-turbo",
   temperature: 0.7,
   maxTokens: 2e3,
-  systemPrompt: "\u4F60\u662F\u4E00\u4E2A\u4E13\u4E1A\u7684\u6587\u5B57\u7F16\u8F91\u52A9\u624B\uFF0C\u5E2E\u52A9\u7528\u6237\u6539\u8FDB\u548C\u7F16\u8F91\u6587\u672C\u5185\u5BB9\u3002\u8BF7\u4FDD\u6301\u7B80\u6D01\u3001\u51C6\u786E\u548C\u6709\u7528\u3002"
+  systemPrompt: "\u4F60\u662F\u4E00\u4E2A\u4E13\u4E1A\u7684\u6587\u5B57\u7F16\u8F91\u52A9\u624B\uFF0C\u5E2E\u52A9\u7528\u6237\u6539\u8FDB\u548C\u7F16\u8F91\u6587\u672C\u5185\u5BB9\u3002\u8BF7\u4FDD\u6301\u7B80\u6D01\u3001\u51C6\u786E\u548C\u6709\u7528\u3002",
+  templates: DEFAULT_TEMPLATES
 };
 
 // main.ts
-var SimpleAIPlugin = class extends import_obsidian3.Plugin {
+init_api();
+
+// src/FloatingAIManager.ts
+var import_obsidian3 = require("obsidian");
+var import_client2 = __toESM(require_client());
+var import_react3 = __toESM(require_react());
+
+// src/components/FloatingAIButton.tsx
+var import_react2 = __toESM(require_react());
+var import_jsx_runtime3 = __toESM(require_jsx_runtime());
+var FloatingAIButton = ({
+  editor,
+  templates,
+  onTemplateSelect,
+  position,
+  visible,
+  onClose
+}) => {
+  const [isExpanded, setIsExpanded] = (0, import_react2.useState)(false);
+  const [selectedText, setSelectedText] = (0, import_react2.useState)("");
+  (0, import_react2.useEffect)(() => {
+    if (visible) {
+      const selection = editor.getSelection();
+      setSelectedText(selection);
+    }
+  }, [visible, editor]);
+  (0, import_react2.useEffect)(() => {
+    const handleClickOutside = (event) => {
+      const target = event.target;
+      if (!target.closest(".floating-ai-button")) {
+        onClose();
+        setIsExpanded(false);
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose();
+        setIsExpanded(false);
+      }
+    };
+    if (visible) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+        document.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+  }, [visible, onClose]);
+  const handleMainButtonClick = () => {
+    if (templates.length === 1) {
+      onTemplateSelect(templates[0], selectedText);
+    } else {
+      setIsExpanded(!isExpanded);
+    }
+  };
+  const handleTemplateSelect = (template) => {
+    onTemplateSelect(template, selectedText);
+    setIsExpanded(false);
+  };
+  if (!visible)
+    return null;
+  const enabledTemplates = templates.filter((template) => template.enabled);
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+    "div",
+    {
+      className: "floating-ai-button",
+      style: {
+        position: "fixed",
+        left: position.x,
+        top: position.y,
+        zIndex: 1e4
+      },
+      children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+          "button",
+          {
+            className: "floating-ai-main-button",
+            onClick: handleMainButtonClick,
+            title: enabledTemplates.length === 1 ? enabledTemplates[0].name : "AI\u52A9\u624B",
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                "svg",
+                {
+                  width: "16",
+                  height: "16",
+                  viewBox: "0 0 24 24",
+                  fill: "currentColor",
+                  children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1L13.5 2.5L16.17 5.17C15.24 5.06 14.24 5 13.13 5H10.87C9.76 5 8.76 5.06 7.83 5.17L10.5 2.5L9 1L3 7V9C3 10.1 3.9 11 5 11V16C5 17.1 5.9 18 7 18H9C9.55 18 10 17.55 10 17V12H14V17C14 17.55 14.45 18 15 18H17C18.1 18 19 17.1 19 16V11C20.1 11 21 10.1 21 9Z" })
+                }
+              ),
+              enabledTemplates.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+                "svg",
+                {
+                  width: "8",
+                  height: "8",
+                  viewBox: "0 0 24 24",
+                  fill: "currentColor",
+                  style: {
+                    marginLeft: "4px",
+                    transform: isExpanded ? "rotate(180deg)" : "none",
+                    transition: "transform 0.2s ease"
+                  },
+                  children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M7 10l5 5 5-5z" })
+                }
+              )
+            ]
+          }
+        ),
+        isExpanded && enabledTemplates.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "floating-ai-menu", children: enabledTemplates.map((template) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+          "button",
+          {
+            className: "floating-ai-menu-item",
+            onClick: () => handleTemplateSelect(template),
+            title: template.prompt,
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "floating-ai-menu-item-icon", children: [
+                template.icon === "expand" && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" }) }),
+                template.icon === "edit" && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" }) }),
+                template.icon === "globe" && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95c-.32-1.25-.78-2.45-1.38-3.56 1.84.63 3.37 1.91 4.33 3.56zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56-1.84-.63-3.37-1.9-4.33-3.56zm2.95-8H5.08c.96-1.66 2.49-2.93 4.33-3.56C8.81 5.55 8.35 6.75 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95c-.96 1.65-2.49 2.93-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2 0-.68-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z" }) }),
+                template.icon === "bot" && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1L13.5 2.5L16.17 5.17C15.24 5.06 14.24 5 13.13 5H10.87C9.76 5 8.76 5.06 7.83 5.17L10.5 2.5L9 1L3 7V9C3 10.1 3.9 11 5 11V16C5 17.1 5.9 18 7 18H9C9.55 18 10 17.55 10 17V12H14V17C14 17.55 14.45 18 15 18H17C18.1 18 19 17.1 19 16V11C20.1 11 21 10.1 21 9Z" }) })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "floating-ai-menu-item-text", children: template.name })
+            ]
+          },
+          template.id
+        )) })
+      ]
+    }
+  );
+};
+
+// src/FloatingAIManager.ts
+var FloatingAIManager = class {
+  constructor(app, templates, onTemplateSelect) {
+    this.container = null;
+    this.root = null;
+    this.currentEditor = null;
+    this.selectionTimeout = null;
+    this.isVisible = false;
+    this.position = { x: 0, y: 0 };
+    this.templates = [];
+    this.app = app;
+    this.templates = templates;
+    this.onTemplateSelect = onTemplateSelect;
+    this.init();
+  }
+  init() {
+    this.container = document.createElement("div");
+    this.container.id = "floating-ai-container";
+    this.container.style.cssText = `
+			position: fixed;
+			top: 0;
+			left: 0;
+			pointer-events: none;
+			z-index: 10000;
+		`;
+    document.body.appendChild(this.container);
+    this.root = (0, import_client2.createRoot)(this.container);
+    this.app.workspace.on("active-leaf-change", this.handleLeafChange.bind(this));
+    document.addEventListener("selectionchange", this.handleSelectionChange.bind(this));
+    document.addEventListener("scroll", this.handleScroll.bind(this), true);
+    window.addEventListener("resize", this.handleResize.bind(this));
+  }
+  // 处理工作区叶子变化
+  handleLeafChange(leaf) {
+    if ((leaf == null ? void 0 : leaf.view) instanceof import_obsidian3.MarkdownView) {
+      this.currentEditor = leaf.view.editor;
+    } else {
+      this.currentEditor = null;
+      this.hideButton();
+    }
+  }
+  // 处理文本选择变化
+  handleSelectionChange() {
+    if (this.selectionTimeout) {
+      clearTimeout(this.selectionTimeout);
+    }
+    this.selectionTimeout = setTimeout(() => {
+      this.checkAndShowButton();
+    }, 150);
+  }
+  // 检查并显示按钮
+  checkAndShowButton() {
+    if (!this.currentEditor) {
+      this.hideButton();
+      return;
+    }
+    const selection = this.currentEditor.getSelection();
+    if (!selection || selection.trim().length === 0) {
+      this.hideButton();
+      return;
+    }
+    const position = this.getSelectionPosition();
+    if (position) {
+      this.position = position;
+      this.showButton();
+    }
+  }
+  // 获取选择区域的位置
+  getSelectionPosition() {
+    try {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) {
+        return null;
+      }
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) {
+        return null;
+      }
+      const buttonWidth = 160;
+      const buttonHeight = 40;
+      let x = rect.right + 8;
+      let y = rect.top - 45;
+      if (x + buttonWidth > window.innerWidth) {
+        x = Math.max(rect.left - buttonWidth - 8, 10);
+      }
+      if (y < 10) {
+        y = rect.bottom + 8;
+      }
+      x = Math.max(10, Math.min(x, window.innerWidth - buttonWidth));
+      y = Math.max(10, Math.min(y, window.innerHeight - buttonHeight));
+      return { x, y };
+    } catch (error) {
+      console.error("\u83B7\u53D6\u9009\u62E9\u4F4D\u7F6E\u5931\u8D25:", error);
+      return null;
+    }
+  }
+  // 显示浮动按钮
+  showButton() {
+    if (!this.root || !this.container)
+      return;
+    this.isVisible = true;
+    this.container.style.pointerEvents = "auto";
+    this.root.render(
+      import_react3.default.createElement(FloatingAIButton, {
+        editor: this.currentEditor,
+        templates: this.templates,
+        onTemplateSelect: this.onTemplateSelect,
+        position: this.position,
+        visible: this.isVisible,
+        onClose: this.hideButton.bind(this)
+      })
+    );
+  }
+  // 隐藏浮动按钮
+  hideButton() {
+    if (!this.root || !this.container)
+      return;
+    this.isVisible = false;
+    this.container.style.pointerEvents = "none";
+    this.root.render(
+      import_react3.default.createElement(FloatingAIButton, {
+        editor: this.currentEditor,
+        templates: this.templates,
+        onTemplateSelect: this.onTemplateSelect,
+        position: this.position,
+        visible: this.isVisible,
+        onClose: this.hideButton.bind(this)
+      })
+    );
+  }
+  // 处理滚动事件
+  handleScroll() {
+    if (this.isVisible) {
+      const position = this.getSelectionPosition();
+      if (position) {
+        this.position = position;
+        this.showButton();
+      } else {
+        this.hideButton();
+      }
+    }
+  }
+  // 处理窗口大小调整
+  handleResize() {
+    if (this.isVisible) {
+      const position = this.getSelectionPosition();
+      if (position) {
+        this.position = position;
+        this.showButton();
+      } else {
+        this.hideButton();
+      }
+    }
+  }
+  // 更新模板列表
+  updateTemplates(templates) {
+    this.templates = templates;
+    if (this.isVisible) {
+      this.showButton();
+    }
+  }
+  // 销毁管理器
+  destroy() {
+    if (this.selectionTimeout) {
+      clearTimeout(this.selectionTimeout);
+    }
+    document.removeEventListener("selectionchange", this.handleSelectionChange.bind(this));
+    document.removeEventListener("scroll", this.handleScroll.bind(this), true);
+    window.removeEventListener("resize", this.handleResize.bind(this));
+    if (this.root) {
+      this.root.unmount();
+      this.root = null;
+    }
+    if (this.container && this.container.parentNode) {
+      this.container.parentNode.removeChild(this.container);
+      this.container = null;
+    }
+    this.currentEditor = null;
+    this.isVisible = false;
+    this.templates = [];
+  }
+};
+
+// main.ts
+var SimpleAIPlugin = class extends import_obsidian4.Plugin {
+  constructor() {
+    super(...arguments);
+    this.floatingAIManager = null;
+  }
   async onload() {
     await this.loadSettings();
     this.addSettingTab(new SimpleAISettingTab(this.app, this));
+    this.initFloatingAIManager();
     this.addCommand({
       id: "open-ai-assistant",
       name: "\u6253\u5F00AI\u52A9\u624B",
@@ -24966,10 +25397,16 @@ var SimpleAIPlugin = class extends import_obsidian3.Plugin {
     });
     this.registerEvent(
       this.app.workspace.on("editor-menu", (menu, editor, view) => {
-        if (view instanceof import_obsidian3.MarkdownView) {
+        if (view instanceof import_obsidian4.MarkdownView) {
           menu.addItem((item) => {
-            item.setTitle("AI\u52A9\u624B").setIcon("bot").onClick(() => {
-              new SimpleAIModal(this.app, this, editor).open();
+            item.setTitle("AI").setIcon("bot");
+          });
+          const enabledTemplates = this.settings.templates.filter((template) => template.enabled);
+          enabledTemplates.forEach((template) => {
+            menu.addItem((item) => {
+              item.setTitle(`AI > ${template.name}`).setIcon(template.icon).onClick(async () => {
+                await this.processTextWithTemplate(editor, template);
+              });
             });
           });
         }
@@ -24977,12 +25414,95 @@ var SimpleAIPlugin = class extends import_obsidian3.Plugin {
     );
   }
   onunload() {
+    if (this.floatingAIManager) {
+      this.floatingAIManager.destroy();
+      this.floatingAIManager = null;
+    }
   }
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
   }
   async saveSettings() {
     await this.saveData(this.settings);
+    if (this.floatingAIManager) {
+      this.floatingAIManager.updateTemplates(this.settings.templates);
+    }
+  }
+  // 初始化浮动AI按钮管理器
+  initFloatingAIManager() {
+    if (this.floatingAIManager) {
+      this.floatingAIManager.destroy();
+    }
+    this.floatingAIManager = new FloatingAIManager(
+      this.app,
+      this.settings.templates,
+      this.handleFloatingButtonTemplateSelect.bind(this)
+    );
+  }
+  // 处理浮动按钮模板选择
+  async handleFloatingButtonTemplateSelect(template, selectedText) {
+    if (!this.settings.apiKey) {
+      new import_obsidian4.Notice("\u8BF7\u5148\u5728\u8BBE\u7F6E\u4E2D\u914D\u7F6EAPI\u5BC6\u94A5");
+      return;
+    }
+    if (!selectedText.trim()) {
+      new import_obsidian4.Notice("\u6CA1\u6709\u53EF\u5904\u7406\u7684\u6587\u672C\u5185\u5BB9");
+      return;
+    }
+    const notice = new import_obsidian4.Notice(`\u6B63\u5728\u4F7F\u7528${template.name}\u5904\u7406\u6587\u672C...`, 0);
+    try {
+      const api = new OpenAIAPI(this.settings);
+      const processedText = await api.customProcess(selectedText, template.prompt);
+      const activeView = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
+      if (activeView) {
+        const editor = activeView.editor;
+        editor.replaceSelection(processedText);
+      }
+      notice.hide();
+      new import_obsidian4.Notice(`${template.name}\u5904\u7406\u5B8C\u6210`);
+    } catch (error) {
+      console.error("AI\u5904\u7406\u5931\u8D25:", error);
+      notice.hide();
+      new import_obsidian4.Notice(`${template.name}\u5904\u7406\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`);
+    }
+  }
+  // 获取选中文本或全文
+  getTextContent(editor) {
+    const selectedText = editor.getSelection();
+    if (selectedText && selectedText.trim().length > 0) {
+      return selectedText;
+    }
+    return editor.getValue();
+  }
+  // 使用模板处理文本
+  async processTextWithTemplate(editor, template) {
+    if (!this.settings.apiKey) {
+      new import_obsidian4.Notice("\u8BF7\u5148\u5728\u8BBE\u7F6E\u4E2D\u914D\u7F6EAPI\u5BC6\u94A5");
+      return;
+    }
+    const textContent = this.getTextContent(editor);
+    if (!textContent.trim()) {
+      new import_obsidian4.Notice("\u6CA1\u6709\u53EF\u5904\u7406\u7684\u6587\u672C\u5185\u5BB9");
+      return;
+    }
+    const notice = new import_obsidian4.Notice(`\u6B63\u5728\u4F7F\u7528${template.name}\u5904\u7406\u6587\u672C...`, 0);
+    try {
+      const api = new OpenAIAPI(this.settings);
+      const processedText = await api.customProcess(textContent, template.prompt);
+      const selectedText = editor.getSelection();
+      if (selectedText && selectedText.trim().length > 0) {
+        editor.replaceSelection(processedText);
+      } else {
+        const cursor = editor.getCursor();
+        editor.replaceRange("\n\n" + processedText, cursor);
+      }
+      notice.hide();
+      new import_obsidian4.Notice(`${template.name}\u5904\u7406\u5B8C\u6210`);
+    } catch (error) {
+      console.error("AI\u5904\u7406\u5931\u8D25:", error);
+      notice.hide();
+      new import_obsidian4.Notice(`${template.name}\u5904\u7406\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`);
+    }
   }
 };
 /*! Bundled license information:
