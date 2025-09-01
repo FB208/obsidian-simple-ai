@@ -1,0 +1,2 @@
+# obsidian-simple-ai
+obsidian上的AI插件都太强大了，同时也太复杂了，我只需要一个像notion一样能帮我编辑文字内容的简单AI
