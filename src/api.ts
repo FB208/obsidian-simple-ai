@@ -170,36 +170,41 @@ export class OpenAIAPI {
 
 			const decoder = new TextDecoder();
 			let fullContent = '';
+			let buffer = '';
 
 			while (true) {
 				const { done, value } = await reader.read();
 				if (done) break;
 
-				const chunk = decoder.decode(value, { stream: true });
-				const lines = chunk.split('\\n');
+				buffer += decoder.decode(value, { stream: true });
 
-				for (const line of lines) {
-					if (line.startsWith('data: ')) {
-						const data = line.slice(6).trim();
-						
-						if (data === '[DONE]') {
-							return fullContent;
-						}
+				while (true) {
+					const newlineIndex = buffer.indexOf('\n');
+					if (newlineIndex < 0) break;
+					const line = buffer.slice(0, newlineIndex).trim();
+					buffer = buffer.slice(newlineIndex + 1);
 
-						try {
-							const json = JSON.parse(data);
-							const content = json.choices?.[0]?.delta?.content;
-							if (content) {
-								fullContent += content;
-								onChunk(content);
-							}
-						} catch (e) {
-							// 忽略解析错误的行
+					if (!line.startsWith('data:')) continue;
+					const payload = line.slice(5).trim();
+					if (!payload) continue;
+
+					if (payload === '[DONE]') {
+						return fullContent;
+					}
+
+					try {
+						const json = JSON.parse(payload);
+						const content = json.choices?.[0]?.delta?.content;
+						if (content) {
+							fullContent += content;
+							onChunk(content);
 						}
+					} catch (_) {
+						// 可能是半包或非JSON行，忽略，等待下一次缓冲
 					}
 				}
 			}
-
+ 
 			return fullContent;
 		} catch (error) {
 			console.error('流式API请求错误:', error);

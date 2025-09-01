@@ -35,7 +35,6 @@ export class InlineDiffManager {
 		const to = editor.getCursor('to');
 		
 		// 在原文位置后插入diff容器
-		const diffLine = to.line + 1;
 		const diffContainer = document.createElement('div');
 		diffContainer.className = 'obsidian-inline-diff-wrapper';
 		diffContainer.style.cssText = `

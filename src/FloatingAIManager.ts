@@ -23,6 +23,11 @@ export class FloatingAIManager {
 	private onTemplateSelect: (template: AITemplate, selectedText: string) => void;
 	private isProcessing: boolean = false;
 	private cachedSelectedText: string = '';
+    private handleSelectionChangeBound: (() => void) | null = null;
+    private handleMouseMoveBound: ((event: MouseEvent) => void) | null = null;
+    private handleScrollBound: ((event: Event) => void) | null = null;
+    private handleResizeBound: (() => void) | null = null;
+    private handleLeafChangeBound: ((leaf: WorkspaceLeaf | null) => void) | null = null;
 
 	constructor(
 		app: any, 
@@ -52,19 +57,24 @@ export class FloatingAIManager {
 		this.root = createRoot(this.container);
 
 		// 监听工作区变化
-		this.app.workspace.on('active-leaf-change', this.handleLeafChange.bind(this));
+		this.handleLeafChangeBound = this.handleLeafChange.bind(this);
+		this.app.workspace.on('active-leaf-change', this.handleLeafChangeBound);
 		
 		// 监听全局选择变化
-		document.addEventListener('selectionchange', this.handleSelectionChange.bind(this));
+		this.handleSelectionChangeBound = this.handleSelectionChange.bind(this);
+		document.addEventListener('selectionchange', this.handleSelectionChangeBound);
 		
 		// 监听鼠标移动，记录鼠标位置
-		document.addEventListener('mousemove', this.handleMouseMove.bind(this));
+		this.handleMouseMoveBound = this.handleMouseMove.bind(this);
+		document.addEventListener('mousemove', this.handleMouseMoveBound);
 		
 		// 监听滚动事件
-		document.addEventListener('scroll', this.handleScroll.bind(this), true);
+		this.handleScrollBound = this.handleScroll.bind(this);
+		document.addEventListener('scroll', this.handleScrollBound, true);
 		
 		// 监听窗口调整大小
-		window.addEventListener('resize', this.handleResize.bind(this));
+		this.handleResizeBound = this.handleResize.bind(this);
+		window.addEventListener('resize', this.handleResizeBound);
 	}
 
 	// 处理工作区叶子变化
@@ -301,10 +311,23 @@ export class FloatingAIManager {
 		}
 
 		// 移除事件监听器
-		document.removeEventListener('selectionchange', this.handleSelectionChange.bind(this));
-		document.removeEventListener('mousemove', this.handleMouseMove.bind(this));
-		document.removeEventListener('scroll', this.handleScroll.bind(this), true);
-		window.removeEventListener('resize', this.handleResize.bind(this));
+		if (this.handleSelectionChangeBound) {
+			document.removeEventListener('selectionchange', this.handleSelectionChangeBound);
+		}
+		if (this.handleMouseMoveBound) {
+			document.removeEventListener('mousemove', this.handleMouseMoveBound);
+		}
+		if (this.handleScrollBound) {
+			document.removeEventListener('scroll', this.handleScrollBound, true);
+		}
+		if (this.handleResizeBound) {
+			window.removeEventListener('resize', this.handleResizeBound);
+		}
+		if (this.handleLeafChangeBound && this.app?.workspace?.off) {
+			try {
+				this.app.workspace.off('active-leaf-change', this.handleLeafChangeBound);
+			} catch (_) {}
+		}
 
 		// 卸载React组件
 		if (this.root) {

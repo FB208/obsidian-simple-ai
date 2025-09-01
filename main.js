@@ -190,27 +190,34 @@ var init_api = __esm({
           }
           const decoder = new TextDecoder();
           let fullContent = "";
+          let buffer = "";
           while (true) {
             const { done, value } = await reader.read();
             if (done)
               break;
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split("\\n");
-            for (const line of lines) {
-              if (line.startsWith("data: ")) {
-                const data = line.slice(6).trim();
-                if (data === "[DONE]") {
-                  return fullContent;
+            buffer += decoder.decode(value, { stream: true });
+            while (true) {
+              const newlineIndex = buffer.indexOf("\n");
+              if (newlineIndex < 0)
+                break;
+              const line = buffer.slice(0, newlineIndex).trim();
+              buffer = buffer.slice(newlineIndex + 1);
+              if (!line.startsWith("data:"))
+                continue;
+              const payload = line.slice(5).trim();
+              if (!payload)
+                continue;
+              if (payload === "[DONE]") {
+                return fullContent;
+              }
+              try {
+                const json = JSON.parse(payload);
+                const content = (_d = (_c = (_b = json.choices) == null ? void 0 : _b[0]) == null ? void 0 : _c.delta) == null ? void 0 : _d.content;
+                if (content) {
+                  fullContent += content;
+                  onChunk(content);
                 }
-                try {
-                  const json = JSON.parse(data);
-                  const content = (_d = (_c = (_b = json.choices) == null ? void 0 : _b[0]) == null ? void 0 : _c.delta) == null ? void 0 : _d.content;
-                  if (content) {
-                    fullContent += content;
-                    onChunk(content);
-                  }
-                } catch (e) {
-                }
+              } catch (_) {
               }
             }
           }
@@ -25206,8 +25213,9 @@ var FloatingAIButton = ({
   const handleMainButtonClick = () => {
     if (isProcessing)
       return;
-    if (templates.length === 1) {
-      onTemplateSelect(templates[0], selectedText);
+    const enabledTemplates2 = templates.filter((t) => t.enabled);
+    if (enabledTemplates2.length === 1) {
+      onTemplateSelect(enabledTemplates2[0], selectedText);
     } else {
       setIsExpanded(!isExpanded);
     }
@@ -25319,6 +25327,11 @@ var FloatingAIManager = class {
     this.templates = [];
     this.isProcessing = false;
     this.cachedSelectedText = "";
+    this.handleSelectionChangeBound = null;
+    this.handleMouseMoveBound = null;
+    this.handleScrollBound = null;
+    this.handleResizeBound = null;
+    this.handleLeafChangeBound = null;
     this.app = app;
     this.templates = templates;
     this.onTemplateSelect = onTemplateSelect;
@@ -25336,11 +25349,16 @@ var FloatingAIManager = class {
 		`;
     document.body.appendChild(this.container);
     this.root = (0, import_client2.createRoot)(this.container);
-    this.app.workspace.on("active-leaf-change", this.handleLeafChange.bind(this));
-    document.addEventListener("selectionchange", this.handleSelectionChange.bind(this));
-    document.addEventListener("mousemove", this.handleMouseMove.bind(this));
-    document.addEventListener("scroll", this.handleScroll.bind(this), true);
-    window.addEventListener("resize", this.handleResize.bind(this));
+    this.handleLeafChangeBound = this.handleLeafChange.bind(this);
+    this.app.workspace.on("active-leaf-change", this.handleLeafChangeBound);
+    this.handleSelectionChangeBound = this.handleSelectionChange.bind(this);
+    document.addEventListener("selectionchange", this.handleSelectionChangeBound);
+    this.handleMouseMoveBound = this.handleMouseMove.bind(this);
+    document.addEventListener("mousemove", this.handleMouseMoveBound);
+    this.handleScrollBound = this.handleScroll.bind(this);
+    document.addEventListener("scroll", this.handleScrollBound, true);
+    this.handleResizeBound = this.handleResize.bind(this);
+    window.addEventListener("resize", this.handleResizeBound);
   }
   // 处理工作区叶子变化
   handleLeafChange(leaf) {
@@ -25517,13 +25535,28 @@ var FloatingAIManager = class {
   }
   // 销毁管理器
   destroy() {
+    var _a, _b;
     if (this.selectionTimeout) {
       clearTimeout(this.selectionTimeout);
     }
-    document.removeEventListener("selectionchange", this.handleSelectionChange.bind(this));
-    document.removeEventListener("mousemove", this.handleMouseMove.bind(this));
-    document.removeEventListener("scroll", this.handleScroll.bind(this), true);
-    window.removeEventListener("resize", this.handleResize.bind(this));
+    if (this.handleSelectionChangeBound) {
+      document.removeEventListener("selectionchange", this.handleSelectionChangeBound);
+    }
+    if (this.handleMouseMoveBound) {
+      document.removeEventListener("mousemove", this.handleMouseMoveBound);
+    }
+    if (this.handleScrollBound) {
+      document.removeEventListener("scroll", this.handleScrollBound, true);
+    }
+    if (this.handleResizeBound) {
+      window.removeEventListener("resize", this.handleResizeBound);
+    }
+    if (this.handleLeafChangeBound && ((_b = (_a = this.app) == null ? void 0 : _a.workspace) == null ? void 0 : _b.off)) {
+      try {
+        this.app.workspace.off("active-leaf-change", this.handleLeafChangeBound);
+      } catch (_) {
+      }
+    }
     if (this.root) {
       this.root.unmount();
       this.root = null;
@@ -25683,7 +25716,6 @@ var InlineDiffManager = class {
     const sessionId = `diff_${Date.now()}`;
     const from = editor.getCursor("from");
     const to = editor.getCursor("to");
-    const diffLine = to.line + 1;
     const diffContainer = document.createElement("div");
     diffContainer.className = "obsidian-inline-diff-wrapper";
     diffContainer.style.cssText = `

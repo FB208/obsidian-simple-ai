@@ -70,10 +70,10 @@ export const FloatingAIButton: React.FC<FloatingAIButtonProps> = ({
 	// 处理AI按钮点击
 	const handleMainButtonClick = () => {
 		if (isProcessing) return; // 处理中时禁用点击
-		
-		if (templates.length === 1) {
-			// 如果只有一个模板，直接执行
-			onTemplateSelect(templates[0], selectedText);
+		const enabledTemplates = templates.filter(t => t.enabled);
+		if (enabledTemplates.length === 1) {
+			// 如果仅一个启用模板，直接执行
+			onTemplateSelect(enabledTemplates[0], selectedText);
 		} else {
 			// 展开/收起菜单
 			setIsExpanded(!isExpanded);

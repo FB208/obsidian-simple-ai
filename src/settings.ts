@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting, Notice, Modal } from 'obsidian';
 import SimpleAIPlugin from '../main';
-import { AITemplate, DEFAULT_TEMPLATES } from './types';
+import { AITemplate } from './types';
 
 // 插件设置页面
 export class SimpleAISettingTab extends PluginSettingTab {
