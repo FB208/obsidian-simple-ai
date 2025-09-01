@@ -1,0 +1,256 @@
+/* Simple AI Plugin Styles */
+
+.simple-ai-modal-container {
+	min-width: 600px;
+	min-height: 400px;
+}
+
+.simple-ai-modal {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	max-height: 80vh;
+}
+
+.simple-ai-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 16px 0 12px 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+	margin-bottom: 16px;
+}
+
+.simple-ai-header h3 {
+	margin: 0;
+	font-size: 1.2em;
+	font-weight: 600;
+}
+
+.simple-ai-close-btn {
+	background: none;
+	border: none;
+	font-size: 24px;
+	cursor: pointer;
+	padding: 4px 8px;
+	color: var(--text-muted);
+	border-radius: 4px;
+	transition: all 0.2s ease;
+}
+
+.simple-ai-close-btn:hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.simple-ai-content {
+	display: flex;
+	flex-direction: column;
+	flex-grow: 1;
+	overflow-y: auto;
+}
+
+.simple-ai-input-section,
+.simple-ai-output-section {
+	margin-bottom: 16px;
+}
+
+.simple-ai-input-section label,
+.simple-ai-output-section label {
+	display: block;
+	margin-bottom: 8px;
+	font-weight: 500;
+	color: var(--text-normal);
+}
+
+.simple-ai-textarea {
+	width: 100%;
+	min-height: 120px;
+	padding: 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	background-color: var(--background-primary);
+	color: var(--text-normal);
+	font-family: var(--font-monospace);
+	font-size: 14px;
+	line-height: 1.5;
+	resize: vertical;
+	transition: border-color 0.2s ease;
+}
+
+.simple-ai-textarea:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+.simple-ai-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 16px;
+	padding: 16px 0;
+	border-top: 1px solid var(--background-modifier-border);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.simple-ai-action-btn {
+	padding: 8px 16px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	background-color: var(--background-secondary);
+	color: var(--text-normal);
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: 500;
+	transition: all 0.2s ease;
+	min-width: 100px;
+}
+
+.simple-ai-action-btn:hover:not(:disabled) {
+	background-color: var(--background-modifier-hover);
+	border-color: var(--interactive-accent);
+}
+
+.simple-ai-action-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.simple-ai-action-btn.loading {
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+	animation: pulse 1.5s infinite;
+}
+
+.simple-ai-action-btn.custom-btn {
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+}
+
+.simple-ai-custom-section {
+	display: flex;
+	gap: 8px;
+	margin-bottom: 16px;
+	align-items: center;
+}
+
+.simple-ai-custom-input {
+	flex-grow: 1;
+	padding: 8px 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	background-color: var(--background-primary);
+	color: var(--text-normal);
+	font-size: 14px;
+}
+
+.simple-ai-custom-input:focus {
+	outline: none;
+	border-color: var(--interactive-accent);
+	box-shadow: 0 0 0 2px var(--interactive-accent-hover);
+}
+
+.simple-ai-custom-submit {
+	padding: 8px 16px;
+	border: 1px solid var(--interactive-accent);
+	border-radius: 6px;
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: 500;
+	transition: all 0.2s ease;
+}
+
+.simple-ai-custom-submit:hover:not(:disabled) {
+	background-color: var(--interactive-accent-hover);
+}
+
+.simple-ai-custom-submit:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.simple-ai-output {
+	margin-bottom: 12px;
+}
+
+.simple-ai-result-actions {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.simple-ai-result-btn {
+	padding: 8px 16px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	background-color: var(--background-secondary);
+	color: var(--text-normal);
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: 500;
+	transition: all 0.2s ease;
+}
+
+.simple-ai-result-btn:hover {
+	background-color: var(--background-modifier-hover);
+	border-color: var(--interactive-accent);
+}
+
+.simple-ai-result-btn.primary {
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+	border-color: var(--interactive-accent);
+}
+
+.simple-ai-result-btn.primary:hover {
+	background-color: var(--interactive-accent-hover);
+}
+
+/* 加载动画 */
+@keyframes pulse {
+	0%, 100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.7;
+	}
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+	.simple-ai-modal-container {
+		min-width: 90vw;
+		max-width: 90vw;
+	}
+	
+	.simple-ai-actions {
+		justify-content: center;
+	}
+	
+	.simple-ai-action-btn {
+		flex: 1;
+		min-width: auto;
+		text-align: center;
+	}
+	
+	.simple-ai-custom-section {
+		flex-direction: column;
+	}
+	
+	.simple-ai-custom-input {
+		width: 100%;
+	}
+	
+	.simple-ai-result-actions {
+		justify-content: center;
+	}
+	
+	.simple-ai-result-btn {
+		flex: 1;
+		text-align: center;
+	}
+}

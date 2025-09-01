@@ -1,0 +1,11 @@
+{
+	"id": "simple-ai",
+	"name": "Simple AI",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "一个简单的AI文本编辑助手，类似Notion AI",
+	"author": "Your Name",
+	"authorUrl": "https://your-website.com",
+	"fundingUrl": "https://buymeacoffee.com",
+	"isDesktopOnly": false
+}
