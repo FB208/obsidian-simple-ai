@@ -4,11 +4,13 @@ import { SimpleAIModal } from './src/modal';
 import { DEFAULT_SETTINGS, SimpleAISettings, AITemplate } from './src/types';
 import { OpenAIAPI } from './src/api';
 import { FloatingAIManager } from './src/FloatingAIManager';
+import { InlineDiffManager } from './src/InlineDiffManager';
 
 // 主插件类
 export default class SimpleAIPlugin extends Plugin {
 	settings: SimpleAISettings;
 	floatingAIManager: FloatingAIManager | null = null;
+	inlineDiffManager: InlineDiffManager | null = null;
 
 	async onload() {
 		await this.loadSettings();
@@ -16,8 +18,9 @@ export default class SimpleAIPlugin extends Plugin {
 		// 添加设置页面
 		this.addSettingTab(new SimpleAISettingTab(this.app, this));
 
-		// 初始化浮动AI按钮管理器
+		// 初始化管理器
 		this.initFloatingAIManager();
+		this.inlineDiffManager = new InlineDiffManager(this.app);
 
 		// 添加命令
 		this.addCommand({
@@ -31,10 +34,14 @@ export default class SimpleAIPlugin extends Plugin {
 	}
 
 	onunload() {
-		// 销毁浮动AI按钮管理器
+		// 销毁管理器
 		if (this.floatingAIManager) {
 			this.floatingAIManager.destroy();
 			this.floatingAIManager = null;
+		}
+		if (this.inlineDiffManager) {
+			this.inlineDiffManager.cleanup();
+			this.inlineDiffManager = null;
 		}
 	}
 
@@ -90,29 +97,19 @@ export default class SimpleAIPlugin extends Plugin {
 			// 流式处理完成，设置状态为非处理中
 			this.floatingAIManager?.setProcessing(false);
 			
-			// 导入并显示对比模态框
-			const { DiffModal } = await import('./src/components/DiffModal');
-			
-			const diffModal = new DiffModal(
-				this.app,
-				selectedText,
-				aiResult,
-				() => {
-					// 接受：替换选中文本
-					const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-					if (activeView) {
-						const editor = activeView.editor;
-						editor.replaceSelection(aiResult);
-					}
-					new Notice(`${template.name}处理完成`);
-				},
-				() => {
-					// 拒绝：不做任何操作
-					new Notice('已拒绝AI建议');
-				}
-			);
-			
-			diffModal.open();
+			// 获取当前活动编辑器
+			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (activeView && this.inlineDiffManager) {
+				const editor = activeView.editor;
+				
+				// 显示内联差异对比
+				await this.inlineDiffManager.showInlineDiff(
+					editor,
+					selectedText,
+					aiResult,
+					template.name
+				);
+			}
 			
 		} catch (error) {
 			console.error('AI处理失败:', error);

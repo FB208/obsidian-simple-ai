@@ -1299,7 +1299,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
-        function useEffect3(create, deps) {
+        function useEffect4(create, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useEffect(create, deps);
         }
@@ -2082,7 +2082,7 @@ var require_react_development = __commonJS({
         exports.useContext = useContext;
         exports.useDebugValue = useDebugValue;
         exports.useDeferredValue = useDeferredValue;
-        exports.useEffect = useEffect3;
+        exports.useEffect = useEffect4;
         exports.useId = useId;
         exports.useImperativeHandle = useImperativeHandle;
         exports.useInsertionEffect = useInsertionEffect;
@@ -2586,9 +2586,9 @@ var require_react_dom_development = __commonJS({
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === "function") {
           __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(new Error());
         }
-        var React6 = require_react();
+        var React7 = require_react();
         var Scheduler = require_scheduler();
-        var ReactSharedInternals = React6.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+        var ReactSharedInternals = React7.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
         var suppressWarning = false;
         function setSuppressWarning(newSuppressWarning) {
           {
@@ -4193,7 +4193,7 @@ var require_react_dom_development = __commonJS({
           {
             if (props.value == null) {
               if (typeof props.children === "object" && props.children !== null) {
-                React6.Children.forEach(props.children, function(child) {
+                React7.Children.forEach(props.children, function(child) {
                   if (child == null) {
                     return;
                   }
@@ -23274,7 +23274,7 @@ var require_react_dom_development = __commonJS({
             unmarkContainerAsRoot(container);
           }
         };
-        function createRoot3(container, options2) {
+        function createRoot4(container, options2) {
           if (!isValidContainer(container)) {
             throw new Error("createRoot(...): Target container is not a DOM element.");
           }
@@ -23657,7 +23657,7 @@ var require_react_dom_development = __commonJS({
               error('You are importing createRoot from "react-dom" which is not supported. You should instead import it from "react-dom/client".');
             }
           }
-          return createRoot3(container, options2);
+          return createRoot4(container, options2);
         }
         function hydrateRoot$1(container, initialChildren, options2) {
           {
@@ -23762,7 +23762,7 @@ var require_react_jsx_runtime_development = __commonJS({
     if (true) {
       (function() {
         "use strict";
-        var React6 = require_react();
+        var React7 = require_react();
         var REACT_ELEMENT_TYPE = Symbol.for("react.element");
         var REACT_PORTAL_TYPE = Symbol.for("react.portal");
         var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
@@ -23788,7 +23788,7 @@ var require_react_jsx_runtime_development = __commonJS({
           }
           return null;
         }
-        var ReactSharedInternals = React6.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+        var ReactSharedInternals = React7.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
         function error(format) {
           {
             {
@@ -24638,11 +24638,11 @@ var require_react_jsx_runtime_development = __commonJS({
             return jsxWithValidation(type, props, key, false);
           }
         }
-        var jsx5 = jsxWithValidationDynamic;
-        var jsxs4 = jsxWithValidationStatic;
+        var jsx6 = jsxWithValidationDynamic;
+        var jsxs5 = jsxWithValidationStatic;
         exports.Fragment = REACT_FRAGMENT_TYPE;
-        exports.jsx = jsx5;
-        exports.jsxs = jsxs4;
+        exports.jsx = jsx6;
+        exports.jsxs = jsxs5;
       })();
     }
   }
@@ -24657,178 +24657,6 @@ var require_jsx_runtime = __commonJS({
     } else {
       module2.exports = require_react_jsx_runtime_development();
     }
-  }
-});
-
-// src/components/TypewriterDisplay.tsx
-var import_react4, import_jsx_runtime4, TypewriterDisplay;
-var init_TypewriterDisplay = __esm({
-  "src/components/TypewriterDisplay.tsx"() {
-    import_react4 = __toESM(require_react());
-    import_jsx_runtime4 = __toESM(require_jsx_runtime());
-    TypewriterDisplay = ({
-      content,
-      speed = 30,
-      onComplete
-    }) => {
-      const [displayedText, setDisplayedText] = (0, import_react4.useState)("");
-      const [currentIndex, setCurrentIndex] = (0, import_react4.useState)(0);
-      (0, import_react4.useEffect)(() => {
-        if (currentIndex < content.length) {
-          const timer = setTimeout(() => {
-            setDisplayedText((prev) => prev + content[currentIndex]);
-            setCurrentIndex((prev) => prev + 1);
-          }, speed);
-          return () => clearTimeout(timer);
-        } else if (currentIndex === content.length && onComplete) {
-          onComplete();
-        }
-      }, [currentIndex, content, speed, onComplete]);
-      (0, import_react4.useEffect)(() => {
-        setDisplayedText("");
-        setCurrentIndex(0);
-      }, [content]);
-      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "typewriter-display", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("pre", { style: {
-        whiteSpace: "pre-wrap",
-        fontFamily: "var(--font-monospace)",
-        fontSize: "14px",
-        lineHeight: "1.5",
-        margin: 0
-      }, children: [
-        displayedText,
-        currentIndex < content.length && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-          "span",
-          {
-            className: "typewriter-cursor",
-            style: {
-              opacity: 1,
-              animation: "blink 1s infinite",
-              backgroundColor: "var(--text-accent)",
-              width: "2px",
-              display: "inline-block",
-              height: "1.2em",
-              marginLeft: "1px"
-            }
-          }
-        )
-      ] }) });
-    };
-  }
-});
-
-// src/components/DiffModal.tsx
-var DiffModal_exports = {};
-__export(DiffModal_exports, {
-  DiffModal: () => DiffModal
-});
-var import_react5, import_obsidian4, DiffModal;
-var init_DiffModal = __esm({
-  "src/components/DiffModal.tsx"() {
-    import_react5 = __toESM(require_react());
-    import_obsidian4 = require("obsidian");
-    init_TypewriterDisplay();
-    DiffModal = class extends import_obsidian4.Modal {
-      constructor(app, originalText, aiResult, onAccept, onReject) {
-        super(app);
-        this.showTypewriter = true;
-        this.originalText = originalText;
-        this.aiResult = aiResult;
-        this.onAccept = onAccept;
-        this.onReject = onReject;
-      }
-      onOpen() {
-        const { contentEl } = this;
-        contentEl.empty();
-        contentEl.createEl("h2", { text: "AI\u5904\u7406\u7ED3\u679C\u5BF9\u6BD4" });
-        const diffContainer = contentEl.createDiv("diff-container");
-        diffContainer.style.cssText = `
-			display: flex;
-			flex-direction: column;
-			gap: 20px;
-			max-height: 60vh;
-			overflow-y: auto;
-			padding: 16px 0;
-		`;
-        const originalSection = diffContainer.createDiv("original-section");
-        originalSection.createEl("h3", { text: "\u539F\u6587\uFF1A" });
-        const originalContent = originalSection.createDiv("original-content");
-        originalContent.style.cssText = `
-			background: var(--background-secondary);
-			border: 1px solid var(--background-modifier-border);
-			border-radius: 8px;
-			padding: 16px;
-			font-family: var(--font-monospace);
-			font-size: 14px;
-			line-height: 1.5;
-			white-space: pre-wrap;
-		`;
-        originalContent.textContent = this.originalText;
-        const aiSection = diffContainer.createDiv("ai-section");
-        aiSection.createEl("h3", { text: "AI\u5EFA\u8BAE\uFF1A" });
-        const aiContent = aiSection.createDiv("ai-content");
-        aiContent.style.cssText = `
-			background: var(--background-primary-alt);
-			border: 1px solid var(--interactive-accent);
-			border-radius: 8px;
-			padding: 16px;
-			min-height: 100px;
-		`;
-        Promise.resolve().then(() => __toESM(require_client())).then(({ createRoot: createRoot3 }) => {
-          const root = createRoot3(aiContent);
-          root.render(
-            import_react5.default.createElement(TypewriterDisplay, {
-              content: this.aiResult,
-              speed: 20,
-              onComplete: () => {
-                this.showTypewriter = false;
-                this.renderButtons(contentEl);
-              }
-            })
-          );
-        });
-      }
-      renderButtons(contentEl) {
-        const buttonContainer = contentEl.createDiv("modal-button-container");
-        buttonContainer.style.cssText = `
-			display: flex;
-			justify-content: flex-end;
-			gap: 12px;
-			margin-top: 20px;
-			padding-top: 16px;
-			border-top: 1px solid var(--background-modifier-border);
-		`;
-        const rejectButton = buttonContainer.createEl("button", { text: "\u62D2\u7EDD" });
-        rejectButton.style.cssText = `
-			padding: 8px 16px;
-			border: 1px solid var(--background-modifier-border);
-			border-radius: 6px;
-			background: var(--background-secondary);
-			color: var(--text-normal);
-			cursor: pointer;
-		`;
-        rejectButton.onclick = () => {
-          this.onReject();
-          this.close();
-        };
-        const acceptButton = buttonContainer.createEl("button", { text: "\u63A5\u53D7", cls: "mod-cta" });
-        acceptButton.style.cssText = `
-			padding: 8px 16px;
-			border: 1px solid var(--interactive-accent);
-			border-radius: 6px;
-			background: var(--interactive-accent);
-			color: var(--text-on-accent);
-			cursor: pointer;
-		`;
-        acceptButton.onclick = () => {
-          this.onAccept();
-          this.close();
-        };
-      }
-      onClose() {
-        const { contentEl } = this;
-        contentEl.empty();
-      }
-    };
   }
 });
 
@@ -25701,16 +25529,243 @@ var FloatingAIManager = class {
   }
 };
 
+// src/InlineDiffManager.ts
+var import_obsidian4 = require("obsidian");
+var import_client3 = __toESM(require_client());
+var import_react6 = __toESM(require_react());
+
+// src/components/InlineDiff.tsx
+var import_react5 = __toESM(require_react());
+
+// src/components/TypewriterDisplay.tsx
+var import_react4 = __toESM(require_react());
+var import_jsx_runtime4 = __toESM(require_jsx_runtime());
+var TypewriterDisplay = ({
+  content,
+  speed = 30,
+  onComplete
+}) => {
+  const [displayedText, setDisplayedText] = (0, import_react4.useState)("");
+  const [currentIndex, setCurrentIndex] = (0, import_react4.useState)(0);
+  (0, import_react4.useEffect)(() => {
+    if (currentIndex < content.length) {
+      const timer = setTimeout(() => {
+        setDisplayedText((prev) => prev + content[currentIndex]);
+        setCurrentIndex((prev) => prev + 1);
+      }, speed);
+      return () => clearTimeout(timer);
+    } else if (currentIndex === content.length && onComplete) {
+      onComplete();
+    }
+  }, [currentIndex, content, speed, onComplete]);
+  (0, import_react4.useEffect)(() => {
+    setDisplayedText("");
+    setCurrentIndex(0);
+  }, [content]);
+  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "typewriter-display", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("pre", { style: {
+    whiteSpace: "pre-wrap",
+    fontFamily: "var(--font-monospace)",
+    fontSize: "14px",
+    lineHeight: "1.5",
+    margin: 0
+  }, children: [
+    displayedText,
+    currentIndex < content.length && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+      "span",
+      {
+        className: "typewriter-cursor",
+        style: {
+          opacity: 1,
+          animation: "blink 1s infinite",
+          backgroundColor: "var(--text-accent)",
+          width: "2px",
+          display: "inline-block",
+          height: "1.2em",
+          marginLeft: "1px"
+        }
+      }
+    )
+  ] }) });
+};
+
+// src/components/InlineDiff.tsx
+var import_jsx_runtime5 = __toESM(require_jsx_runtime());
+var InlineDiff = ({
+  editor,
+  originalText,
+  aiResult,
+  onAccept,
+  onReject,
+  onComplete
+}) => {
+  const [showTypewriter, setShowTypewriter] = (0, import_react5.useState)(true);
+  const [displayedResult, setDisplayedResult] = (0, import_react5.useState)("");
+  const handleTypewriterComplete = () => {
+    setShowTypewriter(false);
+    setDisplayedResult(aiResult);
+    if (onComplete)
+      onComplete();
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "inline-diff-container", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "diff-section original", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "diff-header", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "diff-marker", children: "-" }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "diff-label", children: "\u539F\u6587" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "diff-content original-content", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("pre", { children: originalText }) })
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "diff-section suggested", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "diff-header", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "diff-marker", children: "+" }),
+        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "diff-label", children: "AI\u5EFA\u8BAE" })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "diff-content suggested-content", children: showTypewriter ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+        TypewriterDisplay,
+        {
+          content: aiResult,
+          speed: 15,
+          onComplete: handleTypewriterComplete
+        }
+      ) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("pre", { children: displayedResult }) })
+    ] }),
+    !showTypewriter && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "diff-actions", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
+        "button",
+        {
+          className: "diff-action-btn reject-btn",
+          onClick: onReject,
+          title: "\u62D2\u7EDD\u6B64\u66F4\u6539",
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("line", { x1: "18", y1: "6", x2: "6", y2: "18" }),
+              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("line", { x1: "6", y1: "6", x2: "18", y2: "18" })
+            ] }),
+            "\u62D2\u7EDD"
+          ]
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
+        "button",
+        {
+          className: "diff-action-btn accept-btn",
+          onClick: onAccept,
+          title: "\u63A5\u53D7\u6B64\u66F4\u6539",
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("polyline", { points: "20,6 9,17 4,12" }) }),
+            "\u63A5\u53D7"
+          ]
+        }
+      )
+    ] })
+  ] });
+};
+
+// src/InlineDiffManager.ts
+var InlineDiffManager = class {
+  constructor(app) {
+    this.activeSessions = /* @__PURE__ */ new Map();
+    this.app = app;
+  }
+  // 在编辑器中显示内联差异对比
+  async showInlineDiff(editor, originalText, aiResult, templateName) {
+    var _a;
+    const sessionId = `diff_${Date.now()}`;
+    const from = editor.getCursor("from");
+    const to = editor.getCursor("to");
+    const diffLine = to.line + 1;
+    const diffContainer = document.createElement("div");
+    diffContainer.className = "obsidian-inline-diff-wrapper";
+    diffContainer.style.cssText = `
+			margin: 16px 0;
+			position: relative;
+			z-index: 100;
+		`;
+    const root = (0, import_client3.createRoot)(diffContainer);
+    root.render(
+      import_react6.default.createElement(InlineDiff, {
+        editor,
+        originalText,
+        aiResult,
+        onAccept: () => this.acceptDiff(sessionId),
+        onReject: () => this.rejectDiff(sessionId),
+        onComplete: () => {
+        }
+      })
+    );
+    const editorView = this.getEditorView(editor);
+    if (editorView) {
+      const editorContainer = editorView.containerEl.querySelector(".cm-editor");
+      if (editorContainer) {
+        (_a = editorContainer.parentElement) == null ? void 0 : _a.insertBefore(diffContainer, editorContainer.nextSibling);
+      }
+    }
+    const session = {
+      originalText,
+      originalFrom: from,
+      originalTo: to,
+      aiResult,
+      diffElement: diffContainer,
+      root
+    };
+    this.activeSessions.set(sessionId, session);
+  }
+  // 接受差异更改
+  acceptDiff(sessionId) {
+    const session = this.activeSessions.get(sessionId);
+    if (!session)
+      return;
+    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
+    if (activeView) {
+      const editor = activeView.editor;
+      editor.setSelection(session.originalFrom, session.originalTo);
+      editor.replaceSelection(session.aiResult);
+    }
+    this.cleanupSession(sessionId);
+  }
+  // 拒绝差异更改
+  rejectDiff(sessionId) {
+    const session = this.activeSessions.get(sessionId);
+    if (!session)
+      return;
+    this.cleanupSession(sessionId);
+  }
+  // 清理会话
+  cleanupSession(sessionId) {
+    const session = this.activeSessions.get(sessionId);
+    if (!session)
+      return;
+    session.root.unmount();
+    if (session.diffElement && session.diffElement.parentNode) {
+      session.diffElement.parentNode.removeChild(session.diffElement);
+    }
+    this.activeSessions.delete(sessionId);
+  }
+  // 获取编辑器视图
+  getEditorView(editor) {
+    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
+    return (activeView == null ? void 0 : activeView.editor) === editor ? activeView : null;
+  }
+  // 清理所有活动会话
+  cleanup() {
+    for (const sessionId of this.activeSessions.keys()) {
+      this.cleanupSession(sessionId);
+    }
+    this.activeSessions.clear();
+  }
+};
+
 // main.ts
 var SimpleAIPlugin = class extends import_obsidian5.Plugin {
   constructor() {
     super(...arguments);
     this.floatingAIManager = null;
+    this.inlineDiffManager = null;
   }
   async onload() {
     await this.loadSettings();
     this.addSettingTab(new SimpleAISettingTab(this.app, this));
     this.initFloatingAIManager();
+    this.inlineDiffManager = new InlineDiffManager(this.app);
     this.addCommand({
       id: "open-ai-assistant",
       name: "\u6253\u5F00AI\u52A9\u624B",
@@ -25723,6 +25778,10 @@ var SimpleAIPlugin = class extends import_obsidian5.Plugin {
     if (this.floatingAIManager) {
       this.floatingAIManager.destroy();
       this.floatingAIManager = null;
+    }
+    if (this.inlineDiffManager) {
+      this.inlineDiffManager.cleanup();
+      this.inlineDiffManager = null;
     }
   }
   async loadSettings() {
@@ -25764,24 +25823,16 @@ var SimpleAIPlugin = class extends import_obsidian5.Plugin {
         aiResult += chunk;
       });
       (_b = this.floatingAIManager) == null ? void 0 : _b.setProcessing(false);
-      const { DiffModal: DiffModal2 } = await Promise.resolve().then(() => (init_DiffModal(), DiffModal_exports));
-      const diffModal = new DiffModal2(
-        this.app,
-        selectedText,
-        aiResult,
-        () => {
-          const activeView = this.app.workspace.getActiveViewOfType(import_obsidian5.MarkdownView);
-          if (activeView) {
-            const editor = activeView.editor;
-            editor.replaceSelection(aiResult);
-          }
-          new import_obsidian5.Notice(`${template.name}\u5904\u7406\u5B8C\u6210`);
-        },
-        () => {
-          new import_obsidian5.Notice("\u5DF2\u62D2\u7EDDAI\u5EFA\u8BAE");
-        }
-      );
-      diffModal.open();
+      const activeView = this.app.workspace.getActiveViewOfType(import_obsidian5.MarkdownView);
+      if (activeView && this.inlineDiffManager) {
+        const editor = activeView.editor;
+        await this.inlineDiffManager.showInlineDiff(
+          editor,
+          selectedText,
+          aiResult,
+          template.name
+        );
+      }
     } catch (error) {
       console.error("AI\u5904\u7406\u5931\u8D25:", error);
       (_c = this.floatingAIManager) == null ? void 0 : _c.setProcessing(false);
