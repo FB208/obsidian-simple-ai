@@ -88,12 +88,32 @@ export class SimpleAISettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName('系统提示')
 			.setDesc('定义AI助手的行为和角色')
-			.addTextArea(text => text
-				.setPlaceholder('输入系统提示...')
-				.setValue(this.plugin.settings.systemPrompt)
-				.onChange(async (value) => {
-					this.plugin.settings.systemPrompt = value;
-					await this.plugin.saveSettings();
+			.addTextArea(text => {
+				text.setPlaceholder('输入系统提示...')
+					.setValue(this.plugin.settings.systemPrompt)
+					.onChange(async (value) => {
+						this.plugin.settings.systemPrompt = value;
+						await this.plugin.saveSettings();
+					});
+				
+				// 设置textarea样式
+				text.inputEl.rows = 3;
+				text.inputEl.style.minHeight = '80px';
+				text.inputEl.style.resize = 'vertical';
+				text.inputEl.style.fontFamily = 'var(--font-monospace)';
+				text.inputEl.style.fontSize = '14px';
+				text.inputEl.style.lineHeight = '1.4';
+			});
+
+		// 测试连接按钮
+		new Setting(containerEl)
+			.setName('测试连接')
+			.setDesc('测试API连接是否正常')
+			.addButton(button => button
+				.setButtonText('测试连接')
+				.setCta()
+				.onClick(async () => {
+					await this.testConnection();
 				}));
 
 		// AI模板设置区域
@@ -114,17 +134,6 @@ export class SimpleAISettingTab extends PluginSettingTab {
 				.setButtonText('添加模板')
 				.onClick(() => {
 					this.addNewTemplate();
-				}));
-
-		// 测试连接按钮
-		new Setting(containerEl)
-			.setName('测试连接')
-			.setDesc('测试API连接是否正常')
-			.addButton(button => button
-				.setButtonText('测试连接')
-				.setCta()
-				.onClick(async () => {
-					await this.testConnection();
 				}));
 	}
 
@@ -264,11 +273,20 @@ class TemplateEditModal extends Modal {
 		new Setting(contentEl)
 			.setName('提示词')
 			.setDesc('发送给AI的指令，文本内容会附加在提示词后面')
-			.addTextArea(text => text
-				.setValue(this.template.prompt)
-				.onChange(value => {
-					this.template.prompt = value;
-				}));
+			.addTextArea(text => {
+				text.setValue(this.template.prompt)
+					.onChange(value => {
+						this.template.prompt = value;
+					});
+				
+				// 设置textarea样式
+				text.inputEl.rows = 4;
+				text.inputEl.style.minHeight = '100px';
+				text.inputEl.style.resize = 'vertical';
+				text.inputEl.style.fontFamily = 'var(--font-monospace)';
+				text.inputEl.style.fontSize = '14px';
+				text.inputEl.style.lineHeight = '1.5';
+			});
 
 		// 按钮
 		const buttonContainer = contentEl.createDiv('modal-button-container');

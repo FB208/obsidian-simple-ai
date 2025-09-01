@@ -154,6 +154,76 @@ var init_api = __esm({
           ]
         });
       }
+      // 流式自定义处理
+      async customProcessStream(text, instruction, onChunk) {
+        var _a, _b, _c, _d;
+        if (!this.settings.apiKey) {
+          throw new Error("API\u5BC6\u94A5\u672A\u8BBE\u7F6E");
+        }
+        const url = `${this.settings.baseUrl.replace(/\/$/, "")}/chat/completions`;
+        const requestBody = {
+          model: this.settings.model,
+          messages: [
+            { role: "system", content: this.settings.systemPrompt },
+            { role: "user", content: `${instruction}\\n\\n${text}` }
+          ],
+          temperature: this.settings.temperature,
+          max_tokens: this.settings.maxTokens,
+          stream: true
+        };
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${this.settings.apiKey}`
+            },
+            body: JSON.stringify(requestBody)
+          });
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API\u8BF7\u6C42\u5931\u8D25: ${response.status} ${response.statusText}\\n${errorText}`);
+          }
+          const reader = (_a = response.body) == null ? void 0 : _a.getReader();
+          if (!reader) {
+            throw new Error("\u65E0\u6CD5\u83B7\u53D6\u54CD\u5E94\u6D41");
+          }
+          const decoder = new TextDecoder();
+          let fullContent = "";
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done)
+              break;
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split("\\n");
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                const data = line.slice(6).trim();
+                if (data === "[DONE]") {
+                  return fullContent;
+                }
+                try {
+                  const json = JSON.parse(data);
+                  const content = (_d = (_c = (_b = json.choices) == null ? void 0 : _b[0]) == null ? void 0 : _c.delta) == null ? void 0 : _d.content;
+                  if (content) {
+                    fullContent += content;
+                    onChunk(content);
+                  }
+                } catch (e) {
+                }
+              }
+            }
+          }
+          return fullContent;
+        } catch (error) {
+          console.error("\u6D41\u5F0FAPI\u8BF7\u6C42\u9519\u8BEF:", error);
+          if (error instanceof Error) {
+            throw error;
+          } else {
+            throw new Error("API\u8BF7\u6C42\u5931\u8D25: \u672A\u77E5\u9519\u8BEF");
+          }
+        }
+      }
     };
   }
 });
@@ -1217,7 +1287,7 @@ var require_react_development = __commonJS({
           }
           return dispatcher.useContext(Context);
         }
-        function useState3(initialState) {
+        function useState5(initialState) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useState(initialState);
         }
@@ -1229,7 +1299,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
-        function useEffect2(create, deps) {
+        function useEffect3(create, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useEffect(create, deps);
         }
@@ -2012,7 +2082,7 @@ var require_react_development = __commonJS({
         exports.useContext = useContext;
         exports.useDebugValue = useDebugValue;
         exports.useDeferredValue = useDeferredValue;
-        exports.useEffect = useEffect2;
+        exports.useEffect = useEffect3;
         exports.useId = useId;
         exports.useImperativeHandle = useImperativeHandle;
         exports.useInsertionEffect = useInsertionEffect;
@@ -2020,7 +2090,7 @@ var require_react_development = __commonJS({
         exports.useMemo = useMemo;
         exports.useReducer = useReducer;
         exports.useRef = useRef;
-        exports.useState = useState3;
+        exports.useState = useState5;
         exports.useSyncExternalStore = useSyncExternalStore;
         exports.useTransition = useTransition;
         exports.version = ReactVersion;
@@ -2516,9 +2586,9 @@ var require_react_dom_development = __commonJS({
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === "function") {
           __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(new Error());
         }
-        var React4 = require_react();
+        var React6 = require_react();
         var Scheduler = require_scheduler();
-        var ReactSharedInternals = React4.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+        var ReactSharedInternals = React6.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
         var suppressWarning = false;
         function setSuppressWarning(newSuppressWarning) {
           {
@@ -4123,7 +4193,7 @@ var require_react_dom_development = __commonJS({
           {
             if (props.value == null) {
               if (typeof props.children === "object" && props.children !== null) {
-                React4.Children.forEach(props.children, function(child) {
+                React6.Children.forEach(props.children, function(child) {
                   if (child == null) {
                     return;
                   }
@@ -23692,7 +23762,7 @@ var require_react_jsx_runtime_development = __commonJS({
     if (true) {
       (function() {
         "use strict";
-        var React4 = require_react();
+        var React6 = require_react();
         var REACT_ELEMENT_TYPE = Symbol.for("react.element");
         var REACT_PORTAL_TYPE = Symbol.for("react.portal");
         var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
@@ -23718,7 +23788,7 @@ var require_react_jsx_runtime_development = __commonJS({
           }
           return null;
         }
-        var ReactSharedInternals = React4.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+        var ReactSharedInternals = React6.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
         function error(format) {
           {
             {
@@ -24568,11 +24638,11 @@ var require_react_jsx_runtime_development = __commonJS({
             return jsxWithValidation(type, props, key, false);
           }
         }
-        var jsx4 = jsxWithValidationDynamic;
-        var jsxs3 = jsxWithValidationStatic;
+        var jsx5 = jsxWithValidationDynamic;
+        var jsxs4 = jsxWithValidationStatic;
         exports.Fragment = REACT_FRAGMENT_TYPE;
-        exports.jsx = jsx4;
-        exports.jsxs = jsxs3;
+        exports.jsx = jsx5;
+        exports.jsxs = jsxs4;
       })();
     }
   }
@@ -24590,13 +24660,185 @@ var require_jsx_runtime = __commonJS({
   }
 });
 
+// src/components/TypewriterDisplay.tsx
+var import_react4, import_jsx_runtime4, TypewriterDisplay;
+var init_TypewriterDisplay = __esm({
+  "src/components/TypewriterDisplay.tsx"() {
+    import_react4 = __toESM(require_react());
+    import_jsx_runtime4 = __toESM(require_jsx_runtime());
+    TypewriterDisplay = ({
+      content,
+      speed = 30,
+      onComplete
+    }) => {
+      const [displayedText, setDisplayedText] = (0, import_react4.useState)("");
+      const [currentIndex, setCurrentIndex] = (0, import_react4.useState)(0);
+      (0, import_react4.useEffect)(() => {
+        if (currentIndex < content.length) {
+          const timer = setTimeout(() => {
+            setDisplayedText((prev) => prev + content[currentIndex]);
+            setCurrentIndex((prev) => prev + 1);
+          }, speed);
+          return () => clearTimeout(timer);
+        } else if (currentIndex === content.length && onComplete) {
+          onComplete();
+        }
+      }, [currentIndex, content, speed, onComplete]);
+      (0, import_react4.useEffect)(() => {
+        setDisplayedText("");
+        setCurrentIndex(0);
+      }, [content]);
+      return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "typewriter-display", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("pre", { style: {
+        whiteSpace: "pre-wrap",
+        fontFamily: "var(--font-monospace)",
+        fontSize: "14px",
+        lineHeight: "1.5",
+        margin: 0
+      }, children: [
+        displayedText,
+        currentIndex < content.length && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          "span",
+          {
+            className: "typewriter-cursor",
+            style: {
+              opacity: 1,
+              animation: "blink 1s infinite",
+              backgroundColor: "var(--text-accent)",
+              width: "2px",
+              display: "inline-block",
+              height: "1.2em",
+              marginLeft: "1px"
+            }
+          }
+        )
+      ] }) });
+    };
+  }
+});
+
+// src/components/DiffModal.tsx
+var DiffModal_exports = {};
+__export(DiffModal_exports, {
+  DiffModal: () => DiffModal
+});
+var import_react5, import_obsidian4, DiffModal;
+var init_DiffModal = __esm({
+  "src/components/DiffModal.tsx"() {
+    import_react5 = __toESM(require_react());
+    import_obsidian4 = require("obsidian");
+    init_TypewriterDisplay();
+    DiffModal = class extends import_obsidian4.Modal {
+      constructor(app, originalText, aiResult, onAccept, onReject) {
+        super(app);
+        this.showTypewriter = true;
+        this.originalText = originalText;
+        this.aiResult = aiResult;
+        this.onAccept = onAccept;
+        this.onReject = onReject;
+      }
+      onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.createEl("h2", { text: "AI\u5904\u7406\u7ED3\u679C\u5BF9\u6BD4" });
+        const diffContainer = contentEl.createDiv("diff-container");
+        diffContainer.style.cssText = `
+			display: flex;
+			flex-direction: column;
+			gap: 20px;
+			max-height: 60vh;
+			overflow-y: auto;
+			padding: 16px 0;
+		`;
+        const originalSection = diffContainer.createDiv("original-section");
+        originalSection.createEl("h3", { text: "\u539F\u6587\uFF1A" });
+        const originalContent = originalSection.createDiv("original-content");
+        originalContent.style.cssText = `
+			background: var(--background-secondary);
+			border: 1px solid var(--background-modifier-border);
+			border-radius: 8px;
+			padding: 16px;
+			font-family: var(--font-monospace);
+			font-size: 14px;
+			line-height: 1.5;
+			white-space: pre-wrap;
+		`;
+        originalContent.textContent = this.originalText;
+        const aiSection = diffContainer.createDiv("ai-section");
+        aiSection.createEl("h3", { text: "AI\u5EFA\u8BAE\uFF1A" });
+        const aiContent = aiSection.createDiv("ai-content");
+        aiContent.style.cssText = `
+			background: var(--background-primary-alt);
+			border: 1px solid var(--interactive-accent);
+			border-radius: 8px;
+			padding: 16px;
+			min-height: 100px;
+		`;
+        Promise.resolve().then(() => __toESM(require_client())).then(({ createRoot: createRoot3 }) => {
+          const root = createRoot3(aiContent);
+          root.render(
+            import_react5.default.createElement(TypewriterDisplay, {
+              content: this.aiResult,
+              speed: 20,
+              onComplete: () => {
+                this.showTypewriter = false;
+                this.renderButtons(contentEl);
+              }
+            })
+          );
+        });
+      }
+      renderButtons(contentEl) {
+        const buttonContainer = contentEl.createDiv("modal-button-container");
+        buttonContainer.style.cssText = `
+			display: flex;
+			justify-content: flex-end;
+			gap: 12px;
+			margin-top: 20px;
+			padding-top: 16px;
+			border-top: 1px solid var(--background-modifier-border);
+		`;
+        const rejectButton = buttonContainer.createEl("button", { text: "\u62D2\u7EDD" });
+        rejectButton.style.cssText = `
+			padding: 8px 16px;
+			border: 1px solid var(--background-modifier-border);
+			border-radius: 6px;
+			background: var(--background-secondary);
+			color: var(--text-normal);
+			cursor: pointer;
+		`;
+        rejectButton.onclick = () => {
+          this.onReject();
+          this.close();
+        };
+        const acceptButton = buttonContainer.createEl("button", { text: "\u63A5\u53D7", cls: "mod-cta" });
+        acceptButton.style.cssText = `
+			padding: 8px 16px;
+			border: 1px solid var(--interactive-accent);
+			border-radius: 6px;
+			background: var(--interactive-accent);
+			color: var(--text-on-accent);
+			cursor: pointer;
+		`;
+        acceptButton.onclick = () => {
+          this.onAccept();
+          this.close();
+        };
+      }
+      onClose() {
+        const { contentEl } = this;
+        contentEl.empty();
+      }
+    };
+  }
+});
+
 // main.ts
 var main_exports = {};
 __export(main_exports, {
   default: () => SimpleAIPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian4 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 
 // src/settings.ts
 var import_obsidian = require("obsidian");
@@ -24632,9 +24874,20 @@ var SimpleAISettingTab = class extends import_obsidian.PluginSettingTab {
       this.plugin.settings.maxTokens = value;
       await this.plugin.saveSettings();
     }));
-    new import_obsidian.Setting(containerEl).setName("\u7CFB\u7EDF\u63D0\u793A").setDesc("\u5B9A\u4E49AI\u52A9\u624B\u7684\u884C\u4E3A\u548C\u89D2\u8272").addTextArea((text) => text.setPlaceholder("\u8F93\u5165\u7CFB\u7EDF\u63D0\u793A...").setValue(this.plugin.settings.systemPrompt).onChange(async (value) => {
-      this.plugin.settings.systemPrompt = value;
-      await this.plugin.saveSettings();
+    new import_obsidian.Setting(containerEl).setName("\u7CFB\u7EDF\u63D0\u793A").setDesc("\u5B9A\u4E49AI\u52A9\u624B\u7684\u884C\u4E3A\u548C\u89D2\u8272").addTextArea((text) => {
+      text.setPlaceholder("\u8F93\u5165\u7CFB\u7EDF\u63D0\u793A...").setValue(this.plugin.settings.systemPrompt).onChange(async (value) => {
+        this.plugin.settings.systemPrompt = value;
+        await this.plugin.saveSettings();
+      });
+      text.inputEl.rows = 3;
+      text.inputEl.style.minHeight = "80px";
+      text.inputEl.style.resize = "vertical";
+      text.inputEl.style.fontFamily = "var(--font-monospace)";
+      text.inputEl.style.fontSize = "14px";
+      text.inputEl.style.lineHeight = "1.4";
+    });
+    new import_obsidian.Setting(containerEl).setName("\u6D4B\u8BD5\u8FDE\u63A5").setDesc("\u6D4B\u8BD5API\u8FDE\u63A5\u662F\u5426\u6B63\u5E38").addButton((button) => button.setButtonText("\u6D4B\u8BD5\u8FDE\u63A5").setCta().onClick(async () => {
+      await this.testConnection();
     }));
     containerEl.createEl("h3", { text: "AI\u6A21\u677F\u8BBE\u7F6E" });
     containerEl.createEl("p", {
@@ -24644,9 +24897,6 @@ var SimpleAISettingTab = class extends import_obsidian.PluginSettingTab {
     this.displayTemplates(containerEl);
     new import_obsidian.Setting(containerEl).setName("\u6DFB\u52A0\u65B0\u6A21\u677F").setDesc("\u521B\u5EFA\u4E00\u4E2A\u65B0\u7684AI\u5904\u7406\u6A21\u677F").addButton((button) => button.setButtonText("\u6DFB\u52A0\u6A21\u677F").onClick(() => {
       this.addNewTemplate();
-    }));
-    new import_obsidian.Setting(containerEl).setName("\u6D4B\u8BD5\u8FDE\u63A5").setDesc("\u6D4B\u8BD5API\u8FDE\u63A5\u662F\u5426\u6B63\u5E38").addButton((button) => button.setButtonText("\u6D4B\u8BD5\u8FDE\u63A5").setCta().onClick(async () => {
-      await this.testConnection();
     }));
   }
   // 测试API连接
@@ -24733,9 +24983,17 @@ var TemplateEditModal = class extends import_obsidian.Modal {
     new import_obsidian.Setting(contentEl).setName("\u56FE\u6807").setDesc("\u83DC\u5355\u9879\u7684\u56FE\u6807\u540D\u79F0").addText((text) => text.setValue(this.template.icon).onChange((value) => {
       this.template.icon = value;
     }));
-    new import_obsidian.Setting(contentEl).setName("\u63D0\u793A\u8BCD").setDesc("\u53D1\u9001\u7ED9AI\u7684\u6307\u4EE4\uFF0C\u6587\u672C\u5185\u5BB9\u4F1A\u9644\u52A0\u5728\u63D0\u793A\u8BCD\u540E\u9762").addTextArea((text) => text.setValue(this.template.prompt).onChange((value) => {
-      this.template.prompt = value;
-    }));
+    new import_obsidian.Setting(contentEl).setName("\u63D0\u793A\u8BCD").setDesc("\u53D1\u9001\u7ED9AI\u7684\u6307\u4EE4\uFF0C\u6587\u672C\u5185\u5BB9\u4F1A\u9644\u52A0\u5728\u63D0\u793A\u8BCD\u540E\u9762").addTextArea((text) => {
+      text.setValue(this.template.prompt).onChange((value) => {
+        this.template.prompt = value;
+      });
+      text.inputEl.rows = 4;
+      text.inputEl.style.minHeight = "100px";
+      text.inputEl.style.resize = "vertical";
+      text.inputEl.style.fontFamily = "var(--font-monospace)";
+      text.inputEl.style.fontSize = "14px";
+      text.inputEl.style.lineHeight = "1.5";
+    });
     const buttonContainer = contentEl.createDiv("modal-button-container");
     buttonContainer.style.display = "flex";
     buttonContainer.style.justifyContent = "flex-end";
@@ -25078,7 +25336,8 @@ var FloatingAIButton = ({
   onTemplateSelect,
   position,
   visible,
-  onClose
+  onClose,
+  isProcessing = false
 }) => {
   const [isExpanded, setIsExpanded] = (0, import_react2.useState)(false);
   const [selectedText, setSelectedText] = (0, import_react2.useState)("");
@@ -25112,6 +25371,8 @@ var FloatingAIButton = ({
     }
   }, [visible, onClose]);
   const handleMainButtonClick = () => {
+    if (isProcessing)
+      return;
     if (templates.length === 1) {
       onTemplateSelect(templates[0], selectedText);
     } else {
@@ -25139,18 +25400,21 @@ var FloatingAIButton = ({
         /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
           "button",
           {
-            className: "floating-ai-main-button",
+            className: `floating-ai-main-button ${isProcessing ? "processing" : ""}`,
             onClick: handleMainButtonClick,
-            title: enabledTemplates.length === 1 ? enabledTemplates[0].name : "AI\u52A9\u624B",
+            title: isProcessing ? "AI\u6B63\u5728\u5904\u7406..." : enabledTemplates.length === 1 ? enabledTemplates[0].name : "AI\u52A9\u624B",
+            disabled: isProcessing,
             children: [
               /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
                 "svg",
                 {
+                  className: "icon",
+                  viewBox: "0 0 1024 1024",
+                  xmlns: "http://www.w3.org/2000/svg",
                   width: "16",
                   height: "16",
-                  viewBox: "0 0 24 24",
-                  fill: "currentColor",
-                  children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1L13.5 2.5L16.17 5.17C15.24 5.06 14.24 5 13.13 5H10.87C9.76 5 8.76 5.06 7.83 5.17L10.5 2.5L9 1L3 7V9C3 10.1 3.9 11 5 11V16C5 17.1 5.9 18 7 18H9C9.55 18 10 17.55 10 17V12H14V17C14 17.55 14.45 18 15 18H17C18.1 18 19 17.1 19 16V11C20.1 11 21 10.1 21 9Z" })
+                  style: { color: "var(--interactive-accent)" },
+                  children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M752 848a16 16 0 0 1 16 16v64a16 16 0 0 1-16 16H288a16 16 0 0 1-16-16v-64a16 16 0 0 1 16-16h464zM896 96a64 64 0 0 1 63.936 60.8L960 160V704a64 64 0 0 1-60.8 63.936L896 768H144a64 64 0 0 1-63.936-60.8L80 704V160a64 64 0 0 1 60.8-63.936l3.2-0.064H896zM864 192H176v480H864V192zM448 320v240H352V320H448z m240 0v240h-96V320h96z", fill: "currentColor" })
                 }
               ),
               enabledTemplates.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
@@ -25163,7 +25427,8 @@ var FloatingAIButton = ({
                   style: {
                     marginLeft: "4px",
                     transform: isExpanded ? "rotate(180deg)" : "none",
-                    transition: "transform 0.2s ease"
+                    transition: "transform 0.2s ease",
+                    color: "var(--interactive-accent)"
                   },
                   children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M7 10l5 5 5-5z" })
                 }
@@ -25171,7 +25436,7 @@ var FloatingAIButton = ({
             ]
           }
         ),
-        isExpanded && enabledTemplates.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "floating-ai-menu", children: enabledTemplates.map((template) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+        isExpanded && enabledTemplates.length > 1 && !isProcessing && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "floating-ai-menu", children: enabledTemplates.map((template) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
           "button",
           {
             className: "floating-ai-menu-item",
@@ -25179,10 +25444,24 @@ var FloatingAIButton = ({
             title: template.prompt,
             children: [
               /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "floating-ai-menu-item-icon", children: [
-                template.icon === "expand" && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z" }) }),
-                template.icon === "edit" && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" }) }),
-                template.icon === "globe" && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95c-.32-1.25-.78-2.45-1.38-3.56 1.84.63 3.37 1.91 4.33 3.56zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56-1.84-.63-3.37-1.9-4.33-3.56zm2.95-8H5.08c.96-1.66 2.49-2.93 4.33-3.56C8.81 5.55 8.35 6.75 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95c-.96 1.65-2.49 2.93-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2 0-.68-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z" }) }),
-                template.icon === "bot" && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1L13.5 2.5L16.17 5.17C15.24 5.06 14.24 5 13.13 5H10.87C9.76 5 8.76 5.06 7.83 5.17L10.5 2.5L9 1L3 7V9C3 10.1 3.9 11 5 11V16C5 17.1 5.9 18 7 18H9C9.55 18 10 17.55 10 17V12H14V17C14 17.55 14.45 18 15 18H17C18.1 18 19 17.1 19 16V11C20.1 11 21 10.1 21 9Z" }) })
+                template.icon === "expand" && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.5", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M12 8v8m-4-4h8" })
+                ] }),
+                template.icon === "edit" && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.5", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" })
+                ] }),
+                template.icon === "globe" && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.5", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("circle", { cx: "12", cy: "12", r: "10" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "2", y1: "12", x2: "22", y2: "12" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" })
+                ] }),
+                template.icon === "bot" && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 1024 1024", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M291.584 806.314667c-13.909333 0-25.6-11.690667-25.6-25.6v-145.92c0-135.68 110.336-246.016 246.016-246.016s246.016 110.336 246.016 246.016v145.92c0 13.909333-11.690667 25.6-25.6 25.6H291.584z", fill: "currentColor", opacity: "0.8" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M627.114667 626.517333c-18.773333 0-34.133333-15.36-34.133334-34.133333v-36.096c0-18.773333 15.36-34.133333 34.133334-34.133333s34.133333 15.36 34.133333 34.133333v36.096c0 18.773333-15.36 34.133333-34.133333 34.133333zM396.885333 626.517333c-18.773333 0-34.133333-15.36-34.133333-34.133333v-36.096c0-18.773333 15.36-34.133333 34.133333-34.133333s34.133333 15.36 34.133334 34.133333v36.096c0 18.773333-15.36 34.133333-34.133334 34.133333z", fill: "currentColor" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M580.266667 794.88H443.733333c-18.773333 0-34.133333-15.36-34.133333-34.133333V759.466667c0-18.773333 15.36-34.133333 34.133333-34.133334h136.533334c18.773333 0 34.133333 15.36 34.133333 34.133334v1.28c0 18.773333-15.36 34.133333-34.133333 34.133333z", fill: "currentColor" })
+                ] })
               ] }),
               /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "floating-ai-menu-item-text", children: template.name })
             ]
@@ -25203,7 +25482,9 @@ var FloatingAIManager = class {
     this.selectionTimeout = null;
     this.isVisible = false;
     this.position = { x: 0, y: 0 };
+    this.mousePosition = null;
     this.templates = [];
+    this.isProcessing = false;
     this.app = app;
     this.templates = templates;
     this.onTemplateSelect = onTemplateSelect;
@@ -25223,6 +25504,7 @@ var FloatingAIManager = class {
     this.root = (0, import_client2.createRoot)(this.container);
     this.app.workspace.on("active-leaf-change", this.handleLeafChange.bind(this));
     document.addEventListener("selectionchange", this.handleSelectionChange.bind(this));
+    document.addEventListener("mousemove", this.handleMouseMove.bind(this));
     document.addEventListener("scroll", this.handleScroll.bind(this), true);
     window.addEventListener("resize", this.handleResize.bind(this));
   }
@@ -25234,6 +25516,13 @@ var FloatingAIManager = class {
       this.currentEditor = null;
       this.hideButton();
     }
+  }
+  // 处理鼠标移动，记录鼠标位置
+  handleMouseMove(event) {
+    this.mousePosition = {
+      x: event.clientX,
+      y: event.clientY
+    };
   }
   // 处理文本选择变化
   handleSelectionChange() {
@@ -25255,11 +25544,34 @@ var FloatingAIManager = class {
       this.hideButton();
       return;
     }
-    const position = this.getSelectionPosition();
+    const position = this.getOptimalPosition();
     if (position) {
       this.position = position;
       this.showButton();
     }
+  }
+  // 获取最优显示位置（优先使用鼠标位置）
+  getOptimalPosition() {
+    if (this.mousePosition) {
+      return this.calculateMouseBasedPosition(this.mousePosition);
+    }
+    return this.getSelectionPosition();
+  }
+  // 基于鼠标位置计算按钮位置
+  calculateMouseBasedPosition(mousePos) {
+    const buttonWidth = 160;
+    const buttonHeight = 40;
+    let x = mousePos.x + 12;
+    let y = mousePos.y + 12;
+    if (x + buttonWidth > window.innerWidth) {
+      x = mousePos.x - buttonWidth - 12;
+    }
+    if (y + buttonHeight > window.innerHeight) {
+      y = mousePos.y - buttonHeight - 12;
+    }
+    x = Math.max(10, Math.min(x, window.innerWidth - buttonWidth));
+    y = Math.max(10, Math.min(y, window.innerHeight - buttonHeight));
+    return { x, y };
   }
   // 获取选择区域的位置
   getSelectionPosition() {
@@ -25304,7 +25616,8 @@ var FloatingAIManager = class {
         onTemplateSelect: this.onTemplateSelect,
         position: this.position,
         visible: this.isVisible,
-        onClose: this.hideButton.bind(this)
+        onClose: this.hideButton.bind(this),
+        isProcessing: this.isProcessing
       })
     );
   }
@@ -25321,7 +25634,8 @@ var FloatingAIManager = class {
         onTemplateSelect: this.onTemplateSelect,
         position: this.position,
         visible: this.isVisible,
-        onClose: this.hideButton.bind(this)
+        onClose: this.hideButton.bind(this),
+        isProcessing: this.isProcessing
       })
     );
   }
@@ -25356,12 +25670,20 @@ var FloatingAIManager = class {
       this.showButton();
     }
   }
+  // 设置处理状态
+  setProcessing(processing) {
+    this.isProcessing = processing;
+    if (this.isVisible) {
+      this.showButton();
+    }
+  }
   // 销毁管理器
   destroy() {
     if (this.selectionTimeout) {
       clearTimeout(this.selectionTimeout);
     }
     document.removeEventListener("selectionchange", this.handleSelectionChange.bind(this));
+    document.removeEventListener("mousemove", this.handleMouseMove.bind(this));
     document.removeEventListener("scroll", this.handleScroll.bind(this), true);
     window.removeEventListener("resize", this.handleResize.bind(this));
     if (this.root) {
@@ -25374,12 +25696,13 @@ var FloatingAIManager = class {
     }
     this.currentEditor = null;
     this.isVisible = false;
+    this.mousePosition = null;
     this.templates = [];
   }
 };
 
 // main.ts
-var SimpleAIPlugin = class extends import_obsidian4.Plugin {
+var SimpleAIPlugin = class extends import_obsidian5.Plugin {
   constructor() {
     super(...arguments);
     this.floatingAIManager = null;
@@ -25395,23 +25718,6 @@ var SimpleAIPlugin = class extends import_obsidian4.Plugin {
         new SimpleAIModal(this.app, this, editor).open();
       }
     });
-    this.registerEvent(
-      this.app.workspace.on("editor-menu", (menu, editor, view) => {
-        if (view instanceof import_obsidian4.MarkdownView) {
-          menu.addItem((item) => {
-            item.setTitle("AI").setIcon("bot");
-          });
-          const enabledTemplates = this.settings.templates.filter((template) => template.enabled);
-          enabledTemplates.forEach((template) => {
-            menu.addItem((item) => {
-              item.setTitle(`AI > ${template.name}`).setIcon(template.icon).onClick(async () => {
-                await this.processTextWithTemplate(editor, template);
-              });
-            });
-          });
-        }
-      })
-    );
   }
   onunload() {
     if (this.floatingAIManager) {
@@ -25441,67 +25747,45 @@ var SimpleAIPlugin = class extends import_obsidian4.Plugin {
   }
   // 处理浮动按钮模板选择
   async handleFloatingButtonTemplateSelect(template, selectedText) {
+    var _a, _b, _c;
     if (!this.settings.apiKey) {
-      new import_obsidian4.Notice("\u8BF7\u5148\u5728\u8BBE\u7F6E\u4E2D\u914D\u7F6EAPI\u5BC6\u94A5");
+      new import_obsidian5.Notice("\u8BF7\u5148\u5728\u8BBE\u7F6E\u4E2D\u914D\u7F6EAPI\u5BC6\u94A5");
       return;
     }
     if (!selectedText.trim()) {
-      new import_obsidian4.Notice("\u6CA1\u6709\u53EF\u5904\u7406\u7684\u6587\u672C\u5185\u5BB9");
+      new import_obsidian5.Notice("\u6CA1\u6709\u53EF\u5904\u7406\u7684\u6587\u672C\u5185\u5BB9");
       return;
     }
-    const notice = new import_obsidian4.Notice(`\u6B63\u5728\u4F7F\u7528${template.name}\u5904\u7406\u6587\u672C...`, 0);
+    (_a = this.floatingAIManager) == null ? void 0 : _a.setProcessing(true);
     try {
       const api = new OpenAIAPI(this.settings);
-      const processedText = await api.customProcess(selectedText, template.prompt);
-      const activeView = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
-      if (activeView) {
-        const editor = activeView.editor;
-        editor.replaceSelection(processedText);
-      }
-      notice.hide();
-      new import_obsidian4.Notice(`${template.name}\u5904\u7406\u5B8C\u6210`);
+      let aiResult = "";
+      await api.customProcessStream(selectedText, template.prompt, (chunk) => {
+        aiResult += chunk;
+      });
+      (_b = this.floatingAIManager) == null ? void 0 : _b.setProcessing(false);
+      const { DiffModal: DiffModal2 } = await Promise.resolve().then(() => (init_DiffModal(), DiffModal_exports));
+      const diffModal = new DiffModal2(
+        this.app,
+        selectedText,
+        aiResult,
+        () => {
+          const activeView = this.app.workspace.getActiveViewOfType(import_obsidian5.MarkdownView);
+          if (activeView) {
+            const editor = activeView.editor;
+            editor.replaceSelection(aiResult);
+          }
+          new import_obsidian5.Notice(`${template.name}\u5904\u7406\u5B8C\u6210`);
+        },
+        () => {
+          new import_obsidian5.Notice("\u5DF2\u62D2\u7EDDAI\u5EFA\u8BAE");
+        }
+      );
+      diffModal.open();
     } catch (error) {
       console.error("AI\u5904\u7406\u5931\u8D25:", error);
-      notice.hide();
-      new import_obsidian4.Notice(`${template.name}\u5904\u7406\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`);
-    }
-  }
-  // 获取选中文本或全文
-  getTextContent(editor) {
-    const selectedText = editor.getSelection();
-    if (selectedText && selectedText.trim().length > 0) {
-      return selectedText;
-    }
-    return editor.getValue();
-  }
-  // 使用模板处理文本
-  async processTextWithTemplate(editor, template) {
-    if (!this.settings.apiKey) {
-      new import_obsidian4.Notice("\u8BF7\u5148\u5728\u8BBE\u7F6E\u4E2D\u914D\u7F6EAPI\u5BC6\u94A5");
-      return;
-    }
-    const textContent = this.getTextContent(editor);
-    if (!textContent.trim()) {
-      new import_obsidian4.Notice("\u6CA1\u6709\u53EF\u5904\u7406\u7684\u6587\u672C\u5185\u5BB9");
-      return;
-    }
-    const notice = new import_obsidian4.Notice(`\u6B63\u5728\u4F7F\u7528${template.name}\u5904\u7406\u6587\u672C...`, 0);
-    try {
-      const api = new OpenAIAPI(this.settings);
-      const processedText = await api.customProcess(textContent, template.prompt);
-      const selectedText = editor.getSelection();
-      if (selectedText && selectedText.trim().length > 0) {
-        editor.replaceSelection(processedText);
-      } else {
-        const cursor = editor.getCursor();
-        editor.replaceRange("\n\n" + processedText, cursor);
-      }
-      notice.hide();
-      new import_obsidian4.Notice(`${template.name}\u5904\u7406\u5B8C\u6210`);
-    } catch (error) {
-      console.error("AI\u5904\u7406\u5931\u8D25:", error);
-      notice.hide();
-      new import_obsidian4.Notice(`${template.name}\u5904\u7406\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`);
+      (_c = this.floatingAIManager) == null ? void 0 : _c.setProcessing(false);
+      new import_obsidian5.Notice(`${template.name}\u5904\u7406\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`);
     }
   }
 };

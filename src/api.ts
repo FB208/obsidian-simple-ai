@@ -128,4 +128,86 @@ export class OpenAIAPI {
 			]
 		});
 	}
+
+	// 流式自定义处理
+	async customProcessStream(text: string, instruction: string, onChunk: (chunk: string) => void): Promise<string> {
+		if (!this.settings.apiKey) {
+			throw new Error('API密钥未设置');
+		}
+
+		const url = `${this.settings.baseUrl.replace(/\/$/, '')}/chat/completions`;
+		
+		const requestBody = {
+			model: this.settings.model,
+			messages: [
+				{ role: 'system', content: this.settings.systemPrompt },
+				{ role: 'user', content: `${instruction}\\n\\n${text}` }
+			],
+			temperature: this.settings.temperature,
+			max_tokens: this.settings.maxTokens,
+			stream: true
+		};
+
+		try {
+			const response = await fetch(url, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${this.settings.apiKey}`
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(`API请求失败: ${response.status} ${response.statusText}\\n${errorText}`);
+			}
+
+			const reader = response.body?.getReader();
+			if (!reader) {
+				throw new Error('无法获取响应流');
+			}
+
+			const decoder = new TextDecoder();
+			let fullContent = '';
+
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+
+				const chunk = decoder.decode(value, { stream: true });
+				const lines = chunk.split('\\n');
+
+				for (const line of lines) {
+					if (line.startsWith('data: ')) {
+						const data = line.slice(6).trim();
+						
+						if (data === '[DONE]') {
+							return fullContent;
+						}
+
+						try {
+							const json = JSON.parse(data);
+							const content = json.choices?.[0]?.delta?.content;
+							if (content) {
+								fullContent += content;
+								onChunk(content);
+							}
+						} catch (e) {
+							// 忽略解析错误的行
+						}
+					}
+				}
+			}
+
+			return fullContent;
+		} catch (error) {
+			console.error('流式API请求错误:', error);
+			if (error instanceof Error) {
+				throw error;
+			} else {
+				throw new Error('API请求失败: 未知错误');
+			}
+		}
+	}
 }

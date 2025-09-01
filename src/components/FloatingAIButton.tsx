@@ -9,6 +9,7 @@ interface FloatingAIButtonProps {
 	position: { x: number; y: number };
 	visible: boolean;
 	onClose: () => void;
+	isProcessing?: boolean;
 }
 
 // 浮动AI按钮组件
@@ -18,7 +19,8 @@ export const FloatingAIButton: React.FC<FloatingAIButtonProps> = ({
 	onTemplateSelect,
 	position,
 	visible,
-	onClose
+	onClose,
+	isProcessing = false
 }) => {
 	const [isExpanded, setIsExpanded] = useState(false);
 	const [selectedText, setSelectedText] = useState('');
@@ -60,6 +62,8 @@ export const FloatingAIButton: React.FC<FloatingAIButtonProps> = ({
 
 	// 处理AI按钮点击
 	const handleMainButtonClick = () => {
+		if (isProcessing) return; // 处理中时禁用点击
+		
 		if (templates.length === 1) {
 			// 如果只有一个模板，直接执行
 			onTemplateSelect(templates[0], selectedText);
@@ -91,18 +95,21 @@ export const FloatingAIButton: React.FC<FloatingAIButtonProps> = ({
 		>
 			{/* 主AI按钮 */}
 			<button
-				className="floating-ai-main-button"
+				className={`floating-ai-main-button ${isProcessing ? 'processing' : ''}`}
 				onClick={handleMainButtonClick}
-				title={enabledTemplates.length === 1 ? enabledTemplates[0].name : 'AI助手'}
+				title={isProcessing ? 'AI正在处理...' : (enabledTemplates.length === 1 ? enabledTemplates[0].name : 'AI助手')}
+				disabled={isProcessing}
 			>
 				{/* AI机器人图标 */}
 				<svg 
+					className="icon" 
+					viewBox="0 0 1024 1024" 
+					xmlns="http://www.w3.org/2000/svg" 
 					width="16" 
-					height="16" 
-					viewBox="0 0 24 24" 
-					fill="currentColor"
+					height="16"
+					style={{ color: 'var(--interactive-accent)' }}
 				>
-					<path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1L13.5 2.5L16.17 5.17C15.24 5.06 14.24 5 13.13 5H10.87C9.76 5 8.76 5.06 7.83 5.17L10.5 2.5L9 1L3 7V9C3 10.1 3.9 11 5 11V16C5 17.1 5.9 18 7 18H9C9.55 18 10 17.55 10 17V12H14V17C14 17.55 14.45 18 15 18H17C18.1 18 19 17.1 19 16V11C20.1 11 21 10.1 21 9Z"/>
+					<path d="M752 848a16 16 0 0 1 16 16v64a16 16 0 0 1-16 16H288a16 16 0 0 1-16-16v-64a16 16 0 0 1 16-16h464zM896 96a64 64 0 0 1 63.936 60.8L960 160V704a64 64 0 0 1-60.8 63.936L896 768H144a64 64 0 0 1-63.936-60.8L80 704V160a64 64 0 0 1 60.8-63.936l3.2-0.064H896zM864 192H176v480H864V192zM448 320v240H352V320H448z m240 0v240h-96V320h96z" fill="currentColor" />
 				</svg>
 				
 				{enabledTemplates.length > 1 && (
@@ -114,7 +121,8 @@ export const FloatingAIButton: React.FC<FloatingAIButtonProps> = ({
 						style={{ 
 							marginLeft: '4px',
 							transform: isExpanded ? 'rotate(180deg)' : 'none',
-							transition: 'transform 0.2s ease'
+							transition: 'transform 0.2s ease',
+							color: 'var(--interactive-accent)'
 						}}
 					>
 						<path d="M7 10l5 5 5-5z"/>
@@ -123,7 +131,7 @@ export const FloatingAIButton: React.FC<FloatingAIButtonProps> = ({
 			</button>
 
 			{/* 展开的模板菜单 */}
-			{isExpanded && enabledTemplates.length > 1 && (
+			{isExpanded && enabledTemplates.length > 1 && !isProcessing && (
 				<div className="floating-ai-menu">
 					{enabledTemplates.map((template) => (
 						<button
@@ -134,23 +142,29 @@ export const FloatingAIButton: React.FC<FloatingAIButtonProps> = ({
 						>
 							<span className="floating-ai-menu-item-icon">
 								{template.icon === 'expand' && (
-									<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-										<path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/>
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+										<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+										<path d="M12 8v8m-4-4h8"/>
 									</svg>
 								)}
 								{template.icon === 'edit' && (
-									<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-										<path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+										<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+										<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
 									</svg>
 								)}
 								{template.icon === 'globe' && (
-									<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-										<path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95c-.32-1.25-.78-2.45-1.38-3.56 1.84.63 3.37 1.91 4.33 3.56zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2 0 .68.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56-1.84-.63-3.37-1.9-4.33-3.56zm2.95-8H5.08c.96-1.66 2.49-2.93 4.33-3.56C8.81 5.55 8.35 6.75 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2 0-.68.07-1.35.16-2h4.68c.09.65.16 1.32.16 2 0 .68-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95c-.96 1.65-2.49 2.93-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2 0-.68-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z"/>
+									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+										<circle cx="12" cy="12" r="10"/>
+										<line x1="2" y1="12" x2="22" y2="12"/>
+										<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
 									</svg>
 								)}
 								{template.icon === 'bot' && (
-									<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-										<path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1L13.5 2.5L16.17 5.17C15.24 5.06 14.24 5 13.13 5H10.87C9.76 5 8.76 5.06 7.83 5.17L10.5 2.5L9 1L3 7V9C3 10.1 3.9 11 5 11V16C5 17.1 5.9 18 7 18H9C9.55 18 10 17.55 10 17V12H14V17C14 17.55 14.45 18 15 18H17C18.1 18 19 17.1 19 16V11C20.1 11 21 10.1 21 9Z"/>
+									<svg width="16" height="16" viewBox="0 0 1024 1024">
+										<path d="M291.584 806.314667c-13.909333 0-25.6-11.690667-25.6-25.6v-145.92c0-135.68 110.336-246.016 246.016-246.016s246.016 110.336 246.016 246.016v145.92c0 13.909333-11.690667 25.6-25.6 25.6H291.584z" fill="currentColor" opacity="0.8" />
+										<path d="M627.114667 626.517333c-18.773333 0-34.133333-15.36-34.133334-34.133333v-36.096c0-18.773333 15.36-34.133333 34.133334-34.133333s34.133333 15.36 34.133333 34.133333v36.096c0 18.773333-15.36 34.133333-34.133333 34.133333zM396.885333 626.517333c-18.773333 0-34.133333-15.36-34.133333-34.133333v-36.096c0-18.773333 15.36-34.133333 34.133333-34.133333s34.133333 15.36 34.133334 34.133333v36.096c0 18.773333-15.36 34.133333-34.133334 34.133333z" fill="currentColor" />
+										<path d="M580.266667 794.88H443.733333c-18.773333 0-34.133333-15.36-34.133333-34.133333V759.466667c0-18.773333 15.36-34.133333 34.133333-34.133334h136.533334c18.773333 0 34.133333 15.36 34.133333 34.133334v1.28c0 18.773333-15.36 34.133333-34.133333 34.133333z" fill="currentColor" />
 									</svg>
 								)}
 							</span>

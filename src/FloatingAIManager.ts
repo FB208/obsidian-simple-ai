@@ -18,8 +18,10 @@ export class FloatingAIManager {
 	private selectionTimeout: NodeJS.Timeout | null = null;
 	private isVisible = false;
 	private position: Position = { x: 0, y: 0 };
+	private mousePosition: Position | null = null;
 	private templates: AITemplate[] = [];
 	private onTemplateSelect: (template: AITemplate, selectedText: string) => void;
+	private isProcessing: boolean = false;
 
 	constructor(
 		app: any, 
@@ -54,6 +56,9 @@ export class FloatingAIManager {
 		// 监听全局选择变化
 		document.addEventListener('selectionchange', this.handleSelectionChange.bind(this));
 		
+		// 监听鼠标移动，记录鼠标位置
+		document.addEventListener('mousemove', this.handleMouseMove.bind(this));
+		
 		// 监听滚动事件
 		document.addEventListener('scroll', this.handleScroll.bind(this), true);
 		
@@ -69,6 +74,14 @@ export class FloatingAIManager {
 			this.currentEditor = null;
 			this.hideButton();
 		}
+	}
+
+	// 处理鼠标移动，记录鼠标位置
+	private handleMouseMove(event: MouseEvent) {
+		this.mousePosition = {
+			x: event.clientX,
+			y: event.clientY
+		};
 	}
 
 	// 处理文本选择变化
@@ -97,12 +110,51 @@ export class FloatingAIManager {
 			return;
 		}
 
-		// 获取选择区域的位置
-		const position = this.getSelectionPosition();
+		// 优先使用鼠标位置，否则使用选择区域位置
+		const position = this.getOptimalPosition();
 		if (position) {
 			this.position = position;
 			this.showButton();
 		}
+	}
+
+	// 获取最优显示位置（优先使用鼠标位置）
+	private getOptimalPosition(): Position | null {
+		// 如果有鼠标位置记录，优先使用
+		if (this.mousePosition) {
+			return this.calculateMouseBasedPosition(this.mousePosition);
+		}
+		
+		// 回退到选择区域位置
+		return this.getSelectionPosition();
+	}
+
+	// 基于鼠标位置计算按钮位置
+	private calculateMouseBasedPosition(mousePos: Position): Position {
+		// 按钮预计尺寸
+		const buttonWidth = 160;
+		const buttonHeight = 40;
+		
+		// 在鼠标右下角显示，留出合适的间距
+		let x = mousePos.x + 12;
+		let y = mousePos.y + 12;
+		
+		// 边界检查和智能调整
+		if (x + buttonWidth > window.innerWidth) {
+			// 如果右边放不下，放到鼠标左边
+			x = mousePos.x - buttonWidth - 12;
+		}
+		
+		if (y + buttonHeight > window.innerHeight) {
+			// 如果下边放不下，放到鼠标上边
+			y = mousePos.y - buttonHeight - 12;
+		}
+		
+		// 确保不会超出视窗边界
+		x = Math.max(10, Math.min(x, window.innerWidth - buttonWidth));
+		y = Math.max(10, Math.min(y, window.innerHeight - buttonHeight));
+		
+		return { x, y };
 	}
 
 	// 获取选择区域的位置
@@ -164,7 +216,8 @@ export class FloatingAIManager {
 				onTemplateSelect: this.onTemplateSelect,
 				position: this.position,
 				visible: this.isVisible,
-				onClose: this.hideButton.bind(this)
+				onClose: this.hideButton.bind(this),
+				isProcessing: this.isProcessing
 			})
 		);
 	}
@@ -183,7 +236,8 @@ export class FloatingAIManager {
 				onTemplateSelect: this.onTemplateSelect,
 				position: this.position,
 				visible: this.isVisible,
-				onClose: this.hideButton.bind(this)
+				onClose: this.hideButton.bind(this),
+				isProcessing: this.isProcessing
 			})
 		);
 	}
@@ -224,6 +278,14 @@ export class FloatingAIManager {
 		}
 	}
 
+	// 设置处理状态
+	setProcessing(processing: boolean) {
+		this.isProcessing = processing;
+		if (this.isVisible) {
+			this.showButton(); // 重新渲染
+		}
+	}
+
 	// 销毁管理器
 	destroy() {
 		// 清除定时器
@@ -233,6 +295,7 @@ export class FloatingAIManager {
 
 		// 移除事件监听器
 		document.removeEventListener('selectionchange', this.handleSelectionChange.bind(this));
+		document.removeEventListener('mousemove', this.handleMouseMove.bind(this));
 		document.removeEventListener('scroll', this.handleScroll.bind(this), true);
 		window.removeEventListener('resize', this.handleResize.bind(this));
 
@@ -251,6 +314,7 @@ export class FloatingAIManager {
 		// 清空状态
 		this.currentEditor = null;
 		this.isVisible = false;
+		this.mousePosition = null;
 		this.templates = [];
 	}
 }
