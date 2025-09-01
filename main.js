@@ -25165,16 +25165,21 @@ var FloatingAIButton = ({
   position,
   visible,
   onClose,
-  isProcessing = false
+  isProcessing = false,
+  selectedText: propSelectedText = ""
 }) => {
   const [isExpanded, setIsExpanded] = (0, import_react2.useState)(false);
   const [selectedText, setSelectedText] = (0, import_react2.useState)("");
   (0, import_react2.useEffect)(() => {
     if (visible) {
-      const selection = editor.getSelection();
-      setSelectedText(selection);
+      if (propSelectedText) {
+        setSelectedText(propSelectedText);
+      } else {
+        const selection = editor.getSelection();
+        setSelectedText(selection);
+      }
     }
-  }, [visible, editor]);
+  }, [visible, editor, propSelectedText]);
   (0, import_react2.useEffect)(() => {
     const handleClickOutside = (event) => {
       const target = event.target;
@@ -25313,6 +25318,7 @@ var FloatingAIManager = class {
     this.mousePosition = null;
     this.templates = [];
     this.isProcessing = false;
+    this.cachedSelectedText = "";
     this.app = app;
     this.templates = templates;
     this.onTemplateSelect = onTemplateSelect;
@@ -25369,9 +25375,11 @@ var FloatingAIManager = class {
     }
     const selection = this.currentEditor.getSelection();
     if (!selection || selection.trim().length === 0) {
+      this.cachedSelectedText = "";
       this.hideButton();
       return;
     }
+    this.cachedSelectedText = selection;
     const position = this.getOptimalPosition();
     if (position) {
       this.position = position;
@@ -25445,7 +25453,8 @@ var FloatingAIManager = class {
         position: this.position,
         visible: this.isVisible,
         onClose: this.hideButton.bind(this),
-        isProcessing: this.isProcessing
+        isProcessing: this.isProcessing,
+        selectedText: this.cachedSelectedText
       })
     );
   }
@@ -25463,7 +25472,8 @@ var FloatingAIManager = class {
         position: this.position,
         visible: this.isVisible,
         onClose: this.hideButton.bind(this),
-        isProcessing: this.isProcessing
+        isProcessing: this.isProcessing,
+        selectedText: this.cachedSelectedText
       })
     );
   }
@@ -25526,6 +25536,7 @@ var FloatingAIManager = class {
     this.isVisible = false;
     this.mousePosition = null;
     this.templates = [];
+    this.cachedSelectedText = "";
   }
 };
 

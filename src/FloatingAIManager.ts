@@ -22,6 +22,7 @@ export class FloatingAIManager {
 	private templates: AITemplate[] = [];
 	private onTemplateSelect: (template: AITemplate, selectedText: string) => void;
 	private isProcessing: boolean = false;
+	private cachedSelectedText: string = '';
 
 	constructor(
 		app: any, 
@@ -106,9 +107,13 @@ export class FloatingAIManager {
 		const selection = this.currentEditor.getSelection();
 		
 		if (!selection || selection.trim().length === 0) {
+			this.cachedSelectedText = '';
 			this.hideButton();
 			return;
 		}
+
+		// 缓存选中的文本，防止后续获取时选择状态已改变
+		this.cachedSelectedText = selection;
 
 		// 优先使用鼠标位置，否则使用选择区域位置
 		const position = this.getOptimalPosition();
@@ -217,7 +222,8 @@ export class FloatingAIManager {
 				position: this.position,
 				visible: this.isVisible,
 				onClose: this.hideButton.bind(this),
-				isProcessing: this.isProcessing
+				isProcessing: this.isProcessing,
+				selectedText: this.cachedSelectedText
 			})
 		);
 	}
@@ -237,7 +243,8 @@ export class FloatingAIManager {
 				position: this.position,
 				visible: this.isVisible,
 				onClose: this.hideButton.bind(this),
-				isProcessing: this.isProcessing
+				isProcessing: this.isProcessing,
+				selectedText: this.cachedSelectedText
 			})
 		);
 	}
@@ -316,5 +323,6 @@ export class FloatingAIManager {
 		this.isVisible = false;
 		this.mousePosition = null;
 		this.templates = [];
+		this.cachedSelectedText = '';
 	}
 }

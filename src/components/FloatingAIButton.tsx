@@ -10,6 +10,7 @@ interface FloatingAIButtonProps {
 	visible: boolean;
 	onClose: () => void;
 	isProcessing?: boolean;
+	selectedText?: string;
 }
 
 // 浮动AI按钮组件
@@ -20,7 +21,8 @@ export const FloatingAIButton: React.FC<FloatingAIButtonProps> = ({
 	position,
 	visible,
 	onClose,
-	isProcessing = false
+	isProcessing = false,
+	selectedText: propSelectedText = ''
 }) => {
 	const [isExpanded, setIsExpanded] = useState(false);
 	const [selectedText, setSelectedText] = useState('');
@@ -28,10 +30,15 @@ export const FloatingAIButton: React.FC<FloatingAIButtonProps> = ({
 	// 获取当前选中的文本
 	useEffect(() => {
 		if (visible) {
-			const selection = editor.getSelection();
-			setSelectedText(selection);
+			// 优先使用传递来的选中文本，避免重新获取时选择状态已改变
+			if (propSelectedText) {
+				setSelectedText(propSelectedText);
+			} else {
+				const selection = editor.getSelection();
+				setSelectedText(selection);
+			}
 		}
-	}, [visible, editor]);
+	}, [visible, editor, propSelectedText]);
 
 	// 点击外部区域关闭菜单，支持键盘操作
 	useEffect(() => {
