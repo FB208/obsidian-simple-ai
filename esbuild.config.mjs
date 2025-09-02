@@ -40,7 +40,7 @@ const context = await esbuild.context({
 	logLevel: "info",
 	sourcemap: prod ? false : 'inline',
 	treeShaking: true,
-	outfile: path.join(outDir, 'main.js'),
+	outfile: 'main.js',
 	jsx: 'automatic',
 	jsxImportSource: 'react',
 });
@@ -54,11 +54,31 @@ async function copyAssets() {
 	}
 }
 
+async function copyBundleToDist() {
+	fs.mkdirSync(outDir, { recursive: true });
+	const src = path.join(process.cwd(), 'main.js');
+	const dest = path.join(outDir, 'main.js');
+	if (fs.existsSync(src)) {
+		fs.copyFileSync(src, dest);
+	}
+}
+
 if (prod) {
 	await context.rebuild();
 	await copyAssets();
+	await copyBundleToDist();
 	process.exit(0);
 } else {
 	await copyAssets();
+	await copyBundleToDist();
 	await context.watch();
+	// 开发模式：监听根目录产物与资产，变更后同步到 dist
+	const safeWatchFile = (file, handler) => {
+		if (!fs.existsSync(file)) return;
+		fs.watchFile(file, { interval: 200 }, () => handler());
+	};
+	safeWatchFile('main.js', copyBundleToDist);
+	for (const asset of ['manifest.json', 'styles.css']) {
+		safeWatchFile(asset, copyAssets);
+	}
 }

@@ -146,57 +146,7 @@ ${errorText}`);
           }
         }
       }
-      // 改进文本
-      async improveText(text, customPrompt) {
-        const prompt = customPrompt || "\u8BF7\u6539\u8FDB\u4EE5\u4E0B\u6587\u672C\uFF0C\u4F7F\u5176\u66F4\u52A0\u6E05\u6670\u3001\u51C6\u786E\u548C\u6D41\u7545\uFF1A";
-        return this.chatCompletion({
-          model: this.settings.model,
-          messages: [
-            { role: "system", content: this.settings.systemPrompt },
-            { role: "user", content: `${prompt}\\n\\n${text}` }
-          ]
-        });
-      }
-      // 缩短文本
-      async shortenText(text) {
-        return this.chatCompletion({
-          model: this.settings.model,
-          messages: [
-            { role: "system", content: this.settings.systemPrompt },
-            { role: "user", content: `\u8BF7\u5C06\u4EE5\u4E0B\u6587\u672C\u7F29\u77ED\uFF0C\u4FDD\u6301\u4E3B\u8981\u4FE1\u606F\u548C\u89C2\u70B9\uFF1A\\n\\n${text}` }
-          ]
-        });
-      }
-      // 扩展文本
-      async expandText(text) {
-        return this.chatCompletion({
-          model: this.settings.model,
-          messages: [
-            { role: "system", content: this.settings.systemPrompt },
-            { role: "user", content: `\u8BF7\u6269\u5C55\u4EE5\u4E0B\u6587\u672C\uFF0C\u6DFB\u52A0\u66F4\u591A\u7EC6\u8282\u548C\u89E3\u91CA\uFF1A\\n\\n${text}` }
-          ]
-        });
-      }
-      // 翻译文本
-      async translateText(text, targetLanguage = "\u82F1\u8BED") {
-        return this.chatCompletion({
-          model: this.settings.model,
-          messages: [
-            { role: "system", content: this.settings.systemPrompt },
-            { role: "user", content: `\u8BF7\u5C06\u4EE5\u4E0B\u6587\u672C\u7FFB\u8BD1\u6210${targetLanguage}\uFF1A\\n\\n${text}` }
-          ]
-        });
-      }
-      // 总结文本
-      async summarizeText(text) {
-        return this.chatCompletion({
-          model: this.settings.model,
-          messages: [
-            { role: "system", content: this.settings.systemPrompt },
-            { role: "user", content: `\u8BF7\u603B\u7ED3\u4EE5\u4E0B\u6587\u672C\u7684\u4E3B\u8981\u5185\u5BB9\uFF1A\\n\\n${text}` }
-          ]
-        });
-      }
+      // （保留）自定义与流式方法；其他便捷方法已移除，统一通过模板/自定义指令调用
       // 自定义处理
       async customProcess(text, instruction) {
         return this.chatCompletion({
@@ -25526,6 +25476,8 @@ var AIChatSidebar = ({ app, api, getEditor }) => {
   const [input, setInput] = (0, import_react6.useState)("");
   const [isSending, setIsSending] = (0, import_react6.useState)(false);
   const inputRef = (0, import_react6.useRef)(null);
+  const messagesScrollRef = (0, import_react6.useRef)(null);
+  const messagesBottomRef = (0, import_react6.useRef)(null);
   const [selectedFiles, setSelectedFiles] = (0, import_react6.useState)([]);
   const [selectionPreview, setSelectionPreview] = (0, import_react6.useState)("");
   const [selectionFull, setSelectionFull] = (0, import_react6.useState)("");
@@ -25533,6 +25485,21 @@ var AIChatSidebar = ({ app, api, getEditor }) => {
   (0, import_react6.useEffect)(() => {
     setRootFolder(app.vault.getRoot());
   }, [app]);
+  (0, import_react6.useEffect)(() => {
+    const el = messagesScrollRef.current;
+    const bottom = messagesBottomRef.current;
+    if (!el)
+      return;
+    const doScroll = () => {
+      el.scrollTop = el.scrollHeight;
+      if (bottom)
+        bottom.scrollIntoView({ behavior: "auto", block: "end" });
+    };
+    requestAnimationFrame(() => {
+      doScroll();
+      requestAnimationFrame(doScroll);
+    });
+  }, [messages]);
   (0, import_react6.useEffect)(() => {
     const updateSelection = () => {
       const editor = getEditor();
@@ -25634,7 +25601,7 @@ ${prompt}` : prompt;
   return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "simple-ai-modal", style: { height: "100%", width: "100%", display: "flex", flexDirection: "column" }, children: [
     /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "simple-ai-header", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h3", { children: "Simple AI \u5BF9\u8BDD" }) }),
     /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "simple-ai-content", style: { display: "flex", flexDirection: "column", gap: 12, flex: 1, minHeight: 0 }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { flex: 1, overflowY: "auto", border: "1px solid var(--background-modifier-border)", borderRadius: 6, padding: 12, minHeight: 0 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { ref: messagesScrollRef, style: { flex: 1, overflowY: "auto", border: "1px solid var(--background-modifier-border)", borderRadius: 6, padding: 12, minHeight: 0 }, children: [
         messages.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { color: "var(--text-muted)", fontSize: 13 }, children: "\u5F00\u59CB\u5BF9\u8BDD\u5427\uFF0C\u9009\u62E9\u6587\u6863\u53EF\u4F5C\u4E3A\u4E0A\u4E0B\u6587\u3002" }),
         messages.map((m, idx) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
           display: "flex",
@@ -25663,7 +25630,8 @@ ${prompt}` : prompt;
               ] })
             }
           ) })
-        ] }) }, idx))
+        ] }) }, idx)),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { ref: messagesBottomRef })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: 8 }, children: [
         /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "simple-ai-input-section", style: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }, children: [
