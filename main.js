@@ -25475,6 +25475,9 @@ var AIChatSidebar = ({ app, api, getEditor }) => {
   const [messages, setMessages] = (0, import_react6.useState)([]);
   const [input, setInput] = (0, import_react6.useState)("");
   const [isSending, setIsSending] = (0, import_react6.useState)(false);
+  const [summary, setSummary] = (0, import_react6.useState)("");
+  const [isSummarizing, setIsSummarizing] = (0, import_react6.useState)(false);
+  const [summarizedRounds, setSummarizedRounds] = (0, import_react6.useState)(0);
   const inputRef = (0, import_react6.useRef)(null);
   const messagesScrollRef = (0, import_react6.useRef)(null);
   const messagesBottomRef = (0, import_react6.useRef)(null);
@@ -25538,6 +25541,11 @@ var AIChatSidebar = ({ app, api, getEditor }) => {
       setSelectedFiles(files);
     }).open();
   };
+  const handleClear = () => {
+    setMessages([]);
+    setSummary("");
+    setSummarizedRounds(0);
+  };
   const handleSend = async () => {
     const prompt = input.trim();
     if (!prompt)
@@ -25548,6 +25556,7 @@ var AIChatSidebar = ({ app, api, getEditor }) => {
     if (inputRef.current)
       inputRef.current.focus();
     try {
+      const prevMessages = messages;
       const contextParts = [];
       if (selectionFull) {
         contextParts.push(`\u3010\u5F53\u524D\u9009\u4E2D\u5185\u5BB9\u3011
@@ -25572,137 +25581,363 @@ ${contextText}
 \u3010\u7528\u6237\u95EE\u9898\u3011
 ${prompt}` : prompt;
       setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
-      await api.chatCompletionStream([
-        { role: "system", content: api.settings.systemPrompt },
+      const summarizedMessageCount = summarizedRounds * 2;
+      const unsummarizedMessages = prevMessages.slice(summarizedMessageCount).map((m) => ({ role: m.role, content: m.content }));
+      const historyPayload = summary ? unsummarizedMessages : prevMessages.map((m) => ({ role: m.role, content: m.content }));
+      const systemContent = summary ? `${api.settings.systemPrompt}
+
+\u3010\u6B64\u524D\u5BF9\u8BDD\u6458\u8981\u3011
+${summary}` : api.settings.systemPrompt;
+      const sendMessages = [
+        { role: "system", content: systemContent },
+        ...historyPayload,
         { role: "user", content: userMessage }
-      ], (chunk) => {
+      ];
+      await api.chatCompletionStream(sendMessages, (chunk) => {
         setMessages((prev) => {
           const next = [...prev];
           const lastIndex = next.length - 1;
           if (lastIndex >= 0 && next[lastIndex].role === "assistant") {
-            next[lastIndex] = { role: "assistant", content: next[lastIndex].content + chunk };
+            next[lastIndex] = {
+              role: "assistant",
+              content: next[lastIndex].content + chunk
+            };
           }
           return next;
         });
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "\u672A\u77E5\u9519\u8BEF";
-      setMessages((prev) => [...prev, { role: "assistant", content: `\u51FA\u9519\uFF1A${msg}` }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: `\u51FA\u9519\uFF1A${msg}` }
+      ]);
     } finally {
       setIsSending(false);
     }
   };
+  (0, import_react6.useEffect)(() => {
+    const completedRounds = Math.floor(messages.length / 2);
+    const pendingRounds = completedRounds - summarizedRounds;
+    if (!isSending && pendingRounds >= 5 && !isSummarizing) {
+      setIsSummarizing(true);
+      (async () => {
+        try {
+          const startIdx = summarizedRounds * 2;
+          const endIdx = startIdx + 5 * 2;
+          const chunk = messages.slice(startIdx, endIdx);
+          const convoText = chunk.map((m) => (m.role === "user" ? "\u7528\u6237\uFF1A" : "\u52A9\u624B\uFF1A") + m.content).join("\n");
+          const summarizeInstruction = "\u4F60\u5C06\u7EF4\u62A4\u4E00\u4E2A\u6301\u7EED\u66F4\u65B0\u7684\u5BF9\u8BDD\u6458\u8981\u3002\u82E5\u63D0\u4F9B\u4E86\u201C\u6B64\u524D\u6458\u8981\u201D\uFF0C\u8BF7\u5728\u5176\u57FA\u7840\u4E0A\u589E\u91CF\u66F4\u65B0\u5E76\u53BB\u91CD\uFF1B\u5426\u5219\u76F4\u63A5\u4ECE\u5BF9\u8BDD\u751F\u6210\u6458\u8981\u3002\u8981\u6C42\uFF1A\u7B80\u6D01\u3001\u8986\u76D6\u4E3B\u9898/\u5173\u952E\u7ED3\u8BBA/\u884C\u52A8\u9879/\u672A\u89E3\u51B3\u95EE\u9898\uFF1B100-200\u5B57\uFF1B\u76F4\u63A5\u8F93\u51FA\u6458\u8981\u5185\u5BB9\uFF08\u7B80\u4F53\u4E2D\u6587\uFF09\uFF0C\u4E0D\u8981\u6DFB\u52A0\u4EFB\u4F55\u524D\u7F00\u6216\u6807\u9898\u3002";
+          const sys = api.settings.systemPrompt || "";
+          const previousSummary = summary ? `\u3010\u6B64\u524D\u6458\u8981\u3011
+${summary}
+
+` : "";
+          const result = await api.chatCompletion({
+            model: api.settings.model,
+            messages: [
+              { role: "system", content: `${sys}
+
+${summarizeInstruction}` },
+              {
+                role: "user",
+                content: `${previousSummary}\u3010\u5BF9\u8BDD\u5168\u6587\u3011
+${convoText}
+
+\u3010\u4EFB\u52A1\u3011\u8BF7\u8F93\u51FA\u66F4\u65B0\u540E\u7684\u6458\u8981\u3002`
+              }
+            ]
+          });
+          if (typeof result === "string") {
+            setSummary(result.trim());
+            setSummarizedRounds((r) => r + 5);
+          }
+        } catch (e) {
+          console.error("\u5BF9\u8BDD\u6458\u8981\u5931\u8D25:", e);
+        } finally {
+          setIsSummarizing(false);
+        }
+      })();
+    }
+  }, [messages, isSending, summarizedRounds, summary]);
   const copyToClipboard = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
     } catch (_) {
     }
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "simple-ai-modal", style: { height: "100%", width: "100%", display: "flex", flexDirection: "column" }, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "simple-ai-header", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h3", { children: "Simple AI \u5BF9\u8BDD" }) }),
-    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "simple-ai-content", style: { display: "flex", flexDirection: "column", gap: 12, flex: 1, minHeight: 0 }, children: [
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { ref: messagesScrollRef, style: { flex: 1, overflowY: "auto", border: "1px solid var(--background-modifier-border)", borderRadius: 6, padding: 12, minHeight: 0 }, children: [
-        messages.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { color: "var(--text-muted)", fontSize: 13 }, children: "\u5F00\u59CB\u5BF9\u8BDD\u5427\uFF0C\u9009\u62E9\u6587\u6863\u53EF\u4F5C\u4E3A\u4E0A\u4E0B\u6587\u3002" }),
-        messages.map((m, idx) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
-          display: "flex",
-          justifyContent: m.role === "user" ? "flex-end" : "flex-start",
-          margin: "8px 0"
-        }, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
-          maxWidth: "80%",
-          background: m.role === "user" ? "var(--interactive-accent)" : "var(--background-primary-alt)",
-          color: m.role === "user" ? "var(--text-on-accent)" : "var(--text-normal)",
-          padding: "8px 10px",
-          borderRadius: 8,
-          position: "relative",
-          border: m.role === "assistant" ? "1px solid var(--background-modifier-border)" : "none"
-        }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("pre", { style: { whiteSpace: "pre-wrap", margin: 0, fontFamily: "var(--font-monospace)", fontSize: 13 }, children: m.content }),
-          m.role === "assistant" && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { display: "flex", justifyContent: "flex-end", marginTop: 6 }, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-            "button",
-            {
-              className: "simple-ai-result-btn",
-              style: { width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 },
-              onClick: () => copyToClipboard(m.content),
-              title: "\u590D\u5236",
-              children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: [
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("rect", { x: "9", y: "9", width: "13", height: "13", rx: "2", ry: "2" }),
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" })
-              ] })
-            }
-          ) })
-        ] }) }, idx)),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { ref: messagesBottomRef })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: 8 }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "simple-ai-input-section", style: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { className: "simple-ai-result-btn", onClick: openDocPicker, children: "\u9009\u62E9\u6587\u6863" }),
-          selectedFileNames.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { color: "var(--text-muted)", fontSize: 12 }, children: [
-            "\u5DF2\u9009\u62E9\uFF1A",
-            selectedFileNames.join("\uFF0C")
-          ] })
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "simple-ai-input-section", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("label", { children: "\u5F53\u524D\u6587\u6863\u9009\u4E2D\u5185\u5BB9\uFF08\u4E0A\u4E0B\u6587\uFF09\uFF1A" }),
-          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
-            border: "1px dashed var(--background-modifier-border)",
-            borderRadius: 6,
-            padding: 8,
-            minHeight: 40,
-            background: "var(--background-primary)",
-            position: "relative"
-          }, children: [
-            selectionPreview || /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { color: "var(--text-muted)" }, children: "\uFF08\u6682\u65E0\u9009\u4E2D\u5185\u5BB9\uFF0C\u5207\u56DE\u7F16\u8F91\u5668\u9009\u62E9\u6587\u672C\uFF09" }),
-            selectionPreview && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { className: "simple-ai-result-btn", style: { position: "absolute", top: 6, right: 6, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }, onClick: clearSelectionPreview, title: "\u6E05\u9664", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("polyline", { points: "3 6 5 6 21 6" }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M10 11v6M14 11v6" }),
-              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" })
-            ] }) })
-          ] })
-        ] })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { display: "flex", gap: 8 }, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
+  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+    "div",
+    {
+      className: "simple-ai-modal",
+      style: {
+        height: "100%",
+        width: "100%",
         display: "flex",
-        alignItems: "flex-end",
-        gap: 8,
-        border: "1px solid var(--background-modifier-border)",
-        borderRadius: 8,
-        padding: 6,
-        background: "var(--background-primary)",
-        width: "100%"
-      }, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-          "textarea",
+        flexDirection: "column"
+      },
+      children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "simple-ai-header", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h3", { children: "Simple AI \u5BF9\u8BDD" }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+          "div",
           {
-            className: "simple-ai-textarea",
-            rows: 3,
-            placeholder: "\u8F93\u5165\u6D88\u606F...",
-            style: { border: "none", boxShadow: "none", outline: "none" },
-            ref: inputRef,
-            value: input,
-            onChange: (e) => setInput(e.target.value),
-            onKeyDown: (e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                if (!isSending && input.trim())
-                  handleSend();
-              }
-            }
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-          "button",
-          {
-            className: `simple-ai-result-btn ${isSending ? "loading" : "primary"}`,
-            onClick: handleSend,
-            disabled: isSending || !input.trim(),
-            style: { height: 36 },
-            children: isSending ? "\u53D1\u9001\u4E2D..." : "\u53D1\u9001"
+            className: "simple-ai-content",
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+              flex: 1,
+              minHeight: 0
+            },
+            children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+                "div",
+                {
+                  ref: messagesScrollRef,
+                  style: {
+                    flex: 1,
+                    overflowY: "auto",
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: 6,
+                    padding: 12,
+                    minHeight: 0
+                  },
+                  children: [
+                    messages.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { color: "var(--text-muted)", fontSize: 13 }, children: "\u5F00\u59CB\u5BF9\u8BDD\u5427\uFF0C\u9009\u62E9\u6587\u6863\u53EF\u4F5C\u4E3A\u4E0A\u4E0B\u6587\u3002" }),
+                    messages.map((m, idx) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                      "div",
+                      {
+                        style: {
+                          display: "flex",
+                          justifyContent: m.role === "user" ? "flex-end" : "flex-start",
+                          margin: "8px 0"
+                        },
+                        children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+                          "div",
+                          {
+                            style: {
+                              maxWidth: "80%",
+                              background: m.role === "user" ? "var(--interactive-accent)" : "var(--background-primary-alt)",
+                              color: m.role === "user" ? "var(--text-on-accent)" : "var(--text-normal)",
+                              padding: "8px 10px",
+                              borderRadius: 8,
+                              position: "relative",
+                              border: m.role === "assistant" ? "1px solid var(--background-modifier-border)" : "none"
+                            },
+                            children: [
+                              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                                "pre",
+                                {
+                                  style: {
+                                    whiteSpace: "pre-wrap",
+                                    margin: 0,
+                                    fontFamily: "var(--font-monospace)",
+                                    fontSize: 13
+                                  },
+                                  children: m.content
+                                }
+                              ),
+                              m.role === "assistant" && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                                "div",
+                                {
+                                  style: {
+                                    display: "flex",
+                                    justifyContent: "flex-end",
+                                    marginTop: 6
+                                  },
+                                  children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                                    "button",
+                                    {
+                                      className: "simple-ai-result-btn",
+                                      style: {
+                                        width: 28,
+                                        height: 28,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        padding: 0
+                                      },
+                                      onClick: () => copyToClipboard(m.content),
+                                      title: "\u590D\u5236",
+                                      children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+                                        "svg",
+                                        {
+                                          width: "14",
+                                          height: "14",
+                                          viewBox: "0 0 24 24",
+                                          fill: "none",
+                                          stroke: "currentColor",
+                                          strokeWidth: "2",
+                                          children: [
+                                            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                                              "rect",
+                                              {
+                                                x: "9",
+                                                y: "9",
+                                                width: "13",
+                                                height: "13",
+                                                rx: "2",
+                                                ry: "2"
+                                              }
+                                            ),
+                                            /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" })
+                                          ]
+                                        }
+                                      )
+                                    }
+                                  )
+                                }
+                              )
+                            ]
+                          }
+                        )
+                      },
+                      idx
+                    )),
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { ref: messagesBottomRef })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: 8 }, children: [
+                /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+                  "div",
+                  {
+                    className: "simple-ai-input-section",
+                    style: {
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      flexWrap: "wrap"
+                    },
+                    children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { className: "simple-ai-result-btn", onClick: openDocPicker, children: "\u9009\u62E9\u6587\u6863" }),
+                      selectedFileNames.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { color: "var(--text-muted)", fontSize: 12 }, children: [
+                        "\u5DF2\u9009\u62E9\uFF1A",
+                        selectedFileNames.join("\uFF0C")
+                      ] })
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "simple-ai-input-section", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("label", { children: "\u5F53\u524D\u6587\u6863\u9009\u4E2D\u5185\u5BB9\uFF08\u4E0A\u4E0B\u6587\uFF09\uFF1A" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+                    "div",
+                    {
+                      style: {
+                        border: "1px dashed var(--background-modifier-border)",
+                        borderRadius: 6,
+                        padding: 8,
+                        minHeight: 40,
+                        background: "var(--background-primary)",
+                        position: "relative"
+                      },
+                      children: [
+                        selectionPreview || /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { color: "var(--text-muted)" }, children: "\uFF08\u6682\u65E0\u9009\u4E2D\u5185\u5BB9\uFF0C\u5207\u56DE\u7F16\u8F91\u5668\u9009\u62E9\u6587\u672C\uFF09" }),
+                        selectionPreview && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                          "button",
+                          {
+                            className: "simple-ai-result-btn",
+                            style: {
+                              position: "absolute",
+                              top: 6,
+                              right: 6,
+                              width: 28,
+                              height: 28,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              padding: 0
+                            },
+                            onClick: clearSelectionPreview,
+                            title: "\u6E05\u9664",
+                            children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+                              "svg",
+                              {
+                                width: "14",
+                                height: "14",
+                                viewBox: "0 0 24 24",
+                                fill: "none",
+                                stroke: "currentColor",
+                                strokeWidth: "2",
+                                children: [
+                                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("polyline", { points: "3 6 5 6 21 6" }),
+                                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" }),
+                                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M10 11v6M14 11v6" }),
+                                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" })
+                                ]
+                              }
+                            )
+                          }
+                        )
+                      ]
+                    }
+                  )
+                ] })
+              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { display: "flex", gap: 8 }, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
+                "div",
+                {
+                  style: {
+                    display: "flex",
+                    alignItems: "flex-end",
+                    gap: 8,
+                    border: "1px solid var(--background-modifier-border)",
+                    borderRadius: 8,
+                    padding: 6,
+                    background: "var(--background-primary)",
+                    width: "100%"
+                  },
+                  children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                      "textarea",
+                      {
+                        className: "simple-ai-textarea",
+                        rows: 3,
+                        placeholder: "\u8F93\u5165\u6D88\u606F...",
+                        style: { border: "none", boxShadow: "none", outline: "none" },
+                        ref: inputRef,
+                        value: input,
+                        onChange: (e) => setInput(e.target.value),
+                        onKeyDown: (e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            if (!isSending && input.trim())
+                              handleSend();
+                          }
+                        }
+                      }
+                    ),
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: 6 }, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                        "button",
+                        {
+                          className: "simple-ai-result-btn",
+                          onClick: handleClear,
+                          disabled: isSending || messages.length === 0,
+                          style: { height: 36 },
+                          children: "\u6E05\u7A7A"
+                        }
+                      ),
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                        "button",
+                        {
+                          className: `simple-ai-result-btn ${isSending ? "loading" : "primary"}`,
+                          onClick: handleSend,
+                          disabled: isSending || !input.trim(),
+                          style: { height: 36 },
+                          children: isSending ? "\u53D1\u9001\u4E2D..." : "\u53D1\u9001"
+                        }
+                      )
+                    ] })
+                  ]
+                }
+              ) })
+            ]
           }
         )
-      ] }) })
-    ] })
-  ] });
+      ]
+    }
+  );
 };
 var SimpleAIView = class extends import_obsidian4.ItemView {
   constructor(leaf, plugin) {
@@ -25766,7 +26001,10 @@ var DocPickerModal = class extends import_obsidian4.Modal {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.createEl("h3", { text: "\u9009\u62E9\u6587\u6863" });
-    const search = contentEl.createEl("input", { type: "text", attr: { placeholder: "\u641C\u7D22\u6587\u6863..." } });
+    const search = contentEl.createEl("input", {
+      type: "text",
+      attr: { placeholder: "\u641C\u7D22\u6587\u6863..." }
+    });
     search.style.width = "100%";
     search.style.margin = "8px 0";
     search.addEventListener("input", () => {
@@ -25865,7 +26103,9 @@ var DocPickerModal = class extends import_obsidian4.Modal {
             row.style.gap = "8px";
             row.style.padding = "4px 2px";
             row.style.marginLeft = `${(depth + 1) * 12}px`;
-            const cb = row.createEl("input", { type: "checkbox" });
+            const cb = row.createEl("input", {
+              type: "checkbox"
+            });
             cb.checked = this.selected.has(child.path);
             cb.onchange = () => {
               if (cb.checked)
