@@ -1,10 +1,10 @@
-import { Plugin, Editor, MarkdownView, Notice } from 'obsidian';
+import { Plugin, Editor, MarkdownView, Notice, WorkspaceLeaf } from 'obsidian';
 import { SimpleAISettingTab } from './src/settings';
-import { SimpleAIModal } from './src/modal';
 import { DEFAULT_SETTINGS, SimpleAISettings, AITemplate } from './src/types';
 import { OpenAIAPI } from './src/api';
 import { FloatingAIManager } from './src/FloatingAIManager';
 import { InlineDiffManager } from './src/InlineDiffManager';
+import { VIEW_TYPE_SIMPLE_AI, SimpleAIView } from './src/view';
 
 // 主插件类
 export default class SimpleAIPlugin extends Plugin {
@@ -22,12 +22,18 @@ export default class SimpleAIPlugin extends Plugin {
 		this.initFloatingAIManager();
 		this.inlineDiffManager = new InlineDiffManager(this.app);
 
-		// 添加命令
+		// 注册侧边栏视图
+		this.registerView(
+			VIEW_TYPE_SIMPLE_AI,
+			(leaf: WorkspaceLeaf) => new SimpleAIView(leaf, this)
+		);
+
+		// 添加命令（打开侧边栏）
 		this.addCommand({
 			id: 'open-ai-assistant',
 			name: '打开AI助手',
 			editorCallback: (editor: Editor) => {
-				new SimpleAIModal(this.app, this, editor).open();
+				this.activateSimpleAIView(editor);
 			}
 		});
 
@@ -42,6 +48,11 @@ export default class SimpleAIPlugin extends Plugin {
 		if (this.inlineDiffManager) {
 			this.inlineDiffManager.cleanup();
 			this.inlineDiffManager = null;
+		}
+		// 卸载视图
+		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIMPLE_AI);
+		for (const leaf of leaves) {
+			leaf.detach();
 		}
 	}
 
@@ -68,6 +79,25 @@ export default class SimpleAIPlugin extends Plugin {
 			this.settings.templates,
 			this.handleFloatingButtonTemplateSelect.bind(this)
 		);
+	}
+
+	// 打开并激活右侧 Simple AI 视图
+	private async activateSimpleAIView(editor: Editor) {
+		// 计算初始文本：优先选中内容，否则当前行
+		const selectedText = editor.getSelection();
+		const initialText = selectedText || editor.getLine(editor.getCursor().line);
+
+		let leaf = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIMPLE_AI)[0];
+		if (!leaf) {
+			leaf = this.app.workspace.getRightLeaf(false);
+		}
+		if (!leaf) return;
+
+		await leaf.setViewState({ type: VIEW_TYPE_SIMPLE_AI, active: true });
+		await this.app.workspace.revealLeaf(leaf);
+
+		const view = leaf.view as SimpleAIView;
+		view.setContext(editor, initialText);
 	}
 
 	// 处理浮动按钮模板选择

@@ -49,22 +49,33 @@ var init_api = __esm({
       constructor(settings) {
         this.settings = settings;
       }
+      // 聊天流式输出（委托到统一 chatCompletion）
+      async chatCompletionStream(messages, onChunk) {
+        return this.chatCompletion({
+          model: this.settings.model,
+          messages,
+          temperature: this.settings.temperature,
+          max_tokens: this.settings.maxTokens,
+          stream: true
+        }, onChunk);
+      }
       // 更新设置
       updateSettings(settings) {
         this.settings = settings;
       }
-      // 发送聊天完成请求
-      async chatCompletion(request) {
+      // 发送聊天完成请求（统一流式，支持 onChunk；不提供 onChunk 也会聚合返回）
+      async chatCompletion(request, onChunk) {
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         if (!this.settings.apiKey) {
           throw new Error("API\u5BC6\u94A5\u672A\u8BBE\u7F6E");
         }
         const url = `${this.settings.baseUrl.replace(/\/$/, "")}/chat/completions`;
         const requestBody = {
-          model: this.settings.model,
+          model: request.model || this.settings.model,
           messages: request.messages,
-          temperature: this.settings.temperature,
-          max_tokens: this.settings.maxTokens,
-          ...request
+          temperature: (_a = request.temperature) != null ? _a : this.settings.temperature,
+          max_tokens: (_b = request.max_tokens) != null ? _b : this.settings.maxTokens,
+          stream: true
         };
         try {
           const response = await fetch(url, {
@@ -77,13 +88,55 @@ var init_api = __esm({
           });
           if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`API\u8BF7\u6C42\u5931\u8D25: ${response.status} ${response.statusText}\\n${errorText}`);
+            throw new Error(`API\u8BF7\u6C42\u5931\u8D25: ${response.status} ${response.statusText}
+${errorText}`);
+          }
+          const reader = (_c = response.body) == null ? void 0 : _c.getReader();
+          if (reader) {
+            const decoder = new TextDecoder();
+            let fullContent = "";
+            let buffer = "";
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done)
+                break;
+              buffer += decoder.decode(value, { stream: true });
+              while (true) {
+                const newlineIndex = buffer.indexOf("\n");
+                if (newlineIndex < 0)
+                  break;
+                const line = buffer.slice(0, newlineIndex).trim();
+                buffer = buffer.slice(newlineIndex + 1);
+                if (!line.startsWith("data:"))
+                  continue;
+                const payload = line.slice(5).trim();
+                if (!payload)
+                  continue;
+                if (payload === "[DONE]") {
+                  return fullContent;
+                }
+                try {
+                  const json = JSON.parse(payload);
+                  const content2 = (_f = (_e = (_d = json.choices) == null ? void 0 : _d[0]) == null ? void 0 : _e.delta) == null ? void 0 : _f.content;
+                  if (content2) {
+                    fullContent += content2;
+                    if (onChunk)
+                      onChunk(content2);
+                  }
+                } catch (_) {
+                }
+              }
+            }
+            return fullContent;
           }
           const data = await response.json();
           if (!data.choices || data.choices.length === 0) {
             throw new Error("API\u8FD4\u56DE\u6570\u636E\u683C\u5F0F\u9519\u8BEF");
           }
-          return data.choices[0].message.content;
+          const content = ((_h = (_g = data.choices[0]) == null ? void 0 : _g.message) == null ? void 0 : _h.content) || "";
+          if (onChunk && content)
+            onChunk(content);
+          return content;
         } catch (error) {
           console.error("OpenAI API\u8BF7\u6C42\u9519\u8BEF:", error);
           if (error instanceof Error) {
@@ -154,82 +207,17 @@ var init_api = __esm({
           ]
         });
       }
-      // 流式自定义处理
+      // 流式自定义处理（委托到统一 chatCompletion）
       async customProcessStream(text, instruction, onChunk) {
-        var _a, _b, _c, _d;
-        if (!this.settings.apiKey) {
-          throw new Error("API\u5BC6\u94A5\u672A\u8BBE\u7F6E");
-        }
-        const url = `${this.settings.baseUrl.replace(/\/$/, "")}/chat/completions`;
-        const requestBody = {
+        return this.chatCompletion({
           model: this.settings.model,
           messages: [
             { role: "system", content: this.settings.systemPrompt },
-            { role: "user", content: `${instruction}\\n\\n${text}` }
-          ],
-          temperature: this.settings.temperature,
-          max_tokens: this.settings.maxTokens,
-          stream: true
-        };
-        try {
-          const response = await fetch(url, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${this.settings.apiKey}`
-            },
-            body: JSON.stringify(requestBody)
-          });
-          if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`API\u8BF7\u6C42\u5931\u8D25: ${response.status} ${response.statusText}\\n${errorText}`);
-          }
-          const reader = (_a = response.body) == null ? void 0 : _a.getReader();
-          if (!reader) {
-            throw new Error("\u65E0\u6CD5\u83B7\u53D6\u54CD\u5E94\u6D41");
-          }
-          const decoder = new TextDecoder();
-          let fullContent = "";
-          let buffer = "";
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done)
-              break;
-            buffer += decoder.decode(value, { stream: true });
-            while (true) {
-              const newlineIndex = buffer.indexOf("\n");
-              if (newlineIndex < 0)
-                break;
-              const line = buffer.slice(0, newlineIndex).trim();
-              buffer = buffer.slice(newlineIndex + 1);
-              if (!line.startsWith("data:"))
-                continue;
-              const payload = line.slice(5).trim();
-              if (!payload)
-                continue;
-              if (payload === "[DONE]") {
-                return fullContent;
-              }
-              try {
-                const json = JSON.parse(payload);
-                const content = (_d = (_c = (_b = json.choices) == null ? void 0 : _b[0]) == null ? void 0 : _c.delta) == null ? void 0 : _d.content;
-                if (content) {
-                  fullContent += content;
-                  onChunk(content);
-                }
-              } catch (_) {
-              }
-            }
-          }
-          return fullContent;
-        } catch (error) {
-          console.error("\u6D41\u5F0FAPI\u8BF7\u6C42\u9519\u8BEF:", error);
-          if (error instanceof Error) {
-            throw error;
-          } else {
-            throw new Error("API\u8BF7\u6C42\u5931\u8D25: \u672A\u77E5\u9519\u8BEF");
-          }
-        }
+            { role: "user", content: `${instruction}
+
+${text}` }
+          ]
+        }, onChunk);
       }
     };
   }
@@ -1306,7 +1294,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
-        function useEffect4(create, deps) {
+        function useEffect5(create, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useEffect(create, deps);
         }
@@ -1318,11 +1306,11 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useLayoutEffect(create, deps);
         }
-        function useCallback2(callback, deps) {
+        function useCallback(callback, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useCallback(callback, deps);
         }
-        function useMemo(create, deps) {
+        function useMemo2(create, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useMemo(create, deps);
         }
@@ -2085,16 +2073,16 @@ var require_react_development = __commonJS({
         exports.memo = memo;
         exports.startTransition = startTransition;
         exports.unstable_act = act;
-        exports.useCallback = useCallback2;
+        exports.useCallback = useCallback;
         exports.useContext = useContext;
         exports.useDebugValue = useDebugValue;
         exports.useDeferredValue = useDeferredValue;
-        exports.useEffect = useEffect4;
+        exports.useEffect = useEffect5;
         exports.useId = useId;
         exports.useImperativeHandle = useImperativeHandle;
         exports.useInsertionEffect = useInsertionEffect;
         exports.useLayoutEffect = useLayoutEffect;
-        exports.useMemo = useMemo;
+        exports.useMemo = useMemo2;
         exports.useReducer = useReducer;
         exports.useRef = useRef;
         exports.useState = useState5;
@@ -24645,10 +24633,10 @@ var require_react_jsx_runtime_development = __commonJS({
             return jsxWithValidation(type, props, key, false);
           }
         }
-        var jsx6 = jsxWithValidationDynamic;
+        var jsx5 = jsxWithValidationDynamic;
         var jsxs5 = jsxWithValidationStatic;
         exports.Fragment = REACT_FRAGMENT_TYPE;
-        exports.jsx = jsx6;
+        exports.jsx = jsx5;
         exports.jsxs = jsxs5;
       })();
     }
@@ -24848,278 +24836,6 @@ var TemplateEditModal = class extends import_obsidian.Modal {
   }
 };
 
-// src/modal.tsx
-var import_obsidian2 = require("obsidian");
-var import_client = __toESM(require_client());
-
-// src/components/AIAssistantModal.tsx
-var import_react = __toESM(require_react());
-var import_jsx_runtime = __toESM(require_jsx_runtime());
-var AI_ACTIONS = [
-  {
-    type: "improve",
-    label: "\u6539\u8FDB\u6587\u672C",
-    prompt: "\u8BF7\u6539\u8FDB\u4EE5\u4E0B\u6587\u672C\uFF0C\u4F7F\u5176\u66F4\u52A0\u6E05\u6670\u3001\u51C6\u786E\u548C\u6D41\u7545",
-    icon: "edit"
-  },
-  {
-    type: "shorten",
-    label: "\u7F29\u77ED\u5185\u5BB9",
-    prompt: "\u8BF7\u5C06\u4EE5\u4E0B\u6587\u672C\u7F29\u77ED\uFF0C\u4FDD\u6301\u4E3B\u8981\u4FE1\u606F\u548C\u89C2\u70B9",
-    icon: "minimize"
-  },
-  {
-    type: "expand",
-    label: "\u6269\u5C55\u5185\u5BB9",
-    prompt: "\u8BF7\u6269\u5C55\u4EE5\u4E0B\u6587\u672C\uFF0C\u6DFB\u52A0\u66F4\u591A\u7EC6\u8282\u548C\u89E3\u91CA",
-    icon: "maximize"
-  },
-  {
-    type: "translate",
-    label: "\u7FFB\u8BD1",
-    prompt: "\u8BF7\u5C06\u4EE5\u4E0B\u6587\u672C\u7FFB\u8BD1\u6210\u82F1\u8BED",
-    icon: "globe"
-  },
-  {
-    type: "summarize",
-    label: "\u603B\u7ED3",
-    prompt: "\u8BF7\u603B\u7ED3\u4EE5\u4E0B\u6587\u672C\u7684\u4E3B\u8981\u5185\u5BB9",
-    icon: "list"
-  }
-];
-var AIAssistantModal = ({
-  initialText,
-  api,
-  onTextChange,
-  onClose
-}) => {
-  const [inputText, setInputText] = (0, import_react.useState)(initialText);
-  const [outputText, setOutputText] = (0, import_react.useState)("");
-  const [isLoading, setIsLoading] = (0, import_react.useState)(false);
-  const [selectedAction, setSelectedAction] = (0, import_react.useState)(null);
-  const [customPrompt, setCustomPrompt] = (0, import_react.useState)("");
-  const [showCustomPrompt, setShowCustomPrompt] = (0, import_react.useState)(false);
-  const handleAIAction = (0, import_react.useCallback)(async (action, customInstruction) => {
-    if (!inputText.trim()) {
-      return;
-    }
-    setIsLoading(true);
-    setSelectedAction(action);
-    try {
-      let result;
-      switch (action) {
-        case "improve":
-          result = await api.improveText(inputText, customInstruction);
-          break;
-        case "shorten":
-          result = await api.shortenText(inputText);
-          break;
-        case "expand":
-          result = await api.expandText(inputText);
-          break;
-        case "translate":
-          result = await api.translateText(inputText);
-          break;
-        case "summarize":
-          result = await api.summarizeText(inputText);
-          break;
-        case "custom":
-          result = await api.customProcess(inputText, customInstruction || "");
-          break;
-        default:
-          result = await api.improveText(inputText);
-      }
-      setOutputText(result);
-    } catch (error) {
-      console.error("AI\u5904\u7406\u5931\u8D25:", error);
-      setOutputText("\u5904\u7406\u5931\u8D25: " + (error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"));
-    } finally {
-      setIsLoading(false);
-      setSelectedAction(null);
-    }
-  }, [inputText, api]);
-  const handleCustomAction = (0, import_react.useCallback)(async () => {
-    if (!customPrompt.trim()) {
-      return;
-    }
-    await handleAIAction("custom", customPrompt);
-    setCustomPrompt("");
-    setShowCustomPrompt(false);
-  }, [customPrompt, handleAIAction]);
-  const applyResult = (0, import_react.useCallback)(() => {
-    if (outputText) {
-      onTextChange(outputText);
-      onClose();
-    }
-  }, [outputText, onTextChange, onClose]);
-  const replaceOriginal = (0, import_react.useCallback)(() => {
-    if (outputText) {
-      onTextChange(outputText);
-      setInputText(outputText);
-      setOutputText("");
-    }
-  }, [outputText, onTextChange]);
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "simple-ai-modal", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "simple-ai-header", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", { children: "AI \u52A9\u624B" }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-        "button",
-        {
-          className: "simple-ai-close-btn",
-          onClick: onClose,
-          "aria-label": "\u5173\u95ED",
-          children: "\xD7"
-        }
-      )
-    ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "simple-ai-content", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "simple-ai-input-section", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("label", { children: "\u539F\u6587\u672C:" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          "textarea",
-          {
-            className: "simple-ai-textarea",
-            value: inputText,
-            onChange: (e) => setInputText(e.target.value),
-            placeholder: "\u5728\u8FD9\u91CC\u8F93\u5165\u6216\u7C98\u8D34\u8981\u5904\u7406\u7684\u6587\u672C...",
-            rows: 6
-          }
-        )
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "simple-ai-actions", children: [
-        AI_ACTIONS.map((action) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          "button",
-          {
-            className: `simple-ai-action-btn ${selectedAction === action.type ? "loading" : ""}`,
-            onClick: () => handleAIAction(action.type),
-            disabled: isLoading || !inputText.trim(),
-            children: selectedAction === action.type ? "\u5904\u7406\u4E2D..." : action.label
-          },
-          action.type
-        )),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          "button",
-          {
-            className: "simple-ai-action-btn custom-btn",
-            onClick: () => setShowCustomPrompt(!showCustomPrompt),
-            disabled: isLoading,
-            children: "\u81EA\u5B9A\u4E49\u6307\u4EE4"
-          }
-        )
-      ] }),
-      showCustomPrompt && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "simple-ai-custom-section", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          "input",
-          {
-            type: "text",
-            className: "simple-ai-custom-input",
-            value: customPrompt,
-            onChange: (e) => setCustomPrompt(e.target.value),
-            placeholder: "\u8F93\u5165\u81EA\u5B9A\u4E49\u6307\u4EE4...",
-            onKeyPress: (e) => e.key === "Enter" && handleCustomAction()
-          }
-        ),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          "button",
-          {
-            className: "simple-ai-custom-submit",
-            onClick: handleCustomAction,
-            disabled: !customPrompt.trim() || isLoading,
-            children: "\u6267\u884C"
-          }
-        )
-      ] }),
-      outputText && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "simple-ai-output-section", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("label", { children: "AI\u5904\u7406\u7ED3\u679C:" }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "simple-ai-output", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          "textarea",
-          {
-            className: "simple-ai-textarea",
-            value: outputText,
-            onChange: (e) => setOutputText(e.target.value),
-            rows: 6
-          }
-        ) }),
-        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { className: "simple-ai-result-actions", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "button",
-            {
-              className: "simple-ai-result-btn primary",
-              onClick: applyResult,
-              children: "\u5E94\u7528\u5230\u7F16\u8F91\u5668"
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "button",
-            {
-              className: "simple-ai-result-btn",
-              onClick: replaceOriginal,
-              children: "\u66FF\u6362\u539F\u6587"
-            }
-          ),
-          /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            "button",
-            {
-              className: "simple-ai-result-btn",
-              onClick: () => setOutputText(""),
-              children: "\u6E05\u9664\u7ED3\u679C"
-            }
-          )
-        ] })
-      ] })
-    ] })
-  ] });
-};
-
-// src/modal.tsx
-init_api();
-var import_jsx_runtime2 = __toESM(require_jsx_runtime());
-var SimpleAIModal = class extends import_obsidian2.Modal {
-  constructor(app, plugin, editor) {
-    super(app);
-    this.root = null;
-    this.plugin = plugin;
-    this.editor = editor;
-    this.api = new OpenAIAPI(plugin.settings);
-  }
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.addClass("simple-ai-modal-container");
-    const selectedText = this.editor.getSelection();
-    const initialText = selectedText || this.editor.getLine(this.editor.getCursor().line);
-    this.root = (0, import_client.createRoot)(contentEl);
-    this.root.render(
-      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
-        AIAssistantModal,
-        {
-          initialText,
-          api: this.api,
-          onTextChange: this.handleTextChange.bind(this),
-          onClose: this.close.bind(this)
-        }
-      )
-    );
-  }
-  onClose() {
-    if (this.root) {
-      this.root.unmount();
-      this.root = null;
-    }
-    const { contentEl } = this;
-    contentEl.empty();
-  }
-  // 处理文本变更
-  handleTextChange(newText) {
-    const selection = this.editor.getSelection();
-    if (selection) {
-      this.editor.replaceSelection(newText);
-    } else {
-      this.editor.replaceRange(newText, this.editor.getCursor());
-    }
-  }
-};
-
 // src/types.ts
 var DEFAULT_TEMPLATES = [
   {
@@ -25158,13 +24874,13 @@ var DEFAULT_SETTINGS = {
 init_api();
 
 // src/FloatingAIManager.ts
-var import_obsidian3 = require("obsidian");
-var import_client2 = __toESM(require_client());
-var import_react3 = __toESM(require_react());
+var import_obsidian2 = require("obsidian");
+var import_client = __toESM(require_client());
+var import_react2 = __toESM(require_react());
 
 // src/components/FloatingAIButton.tsx
-var import_react2 = __toESM(require_react());
-var import_jsx_runtime3 = __toESM(require_jsx_runtime());
+var import_react = __toESM(require_react());
+var import_jsx_runtime = __toESM(require_jsx_runtime());
 var FloatingAIButton = ({
   editor,
   templates,
@@ -25175,9 +24891,9 @@ var FloatingAIButton = ({
   isProcessing = false,
   selectedText: propSelectedText = ""
 }) => {
-  const [isExpanded, setIsExpanded] = (0, import_react2.useState)(false);
-  const [selectedText, setSelectedText] = (0, import_react2.useState)("");
-  (0, import_react2.useEffect)(() => {
+  const [isExpanded, setIsExpanded] = (0, import_react.useState)(false);
+  const [selectedText, setSelectedText] = (0, import_react.useState)("");
+  (0, import_react.useEffect)(() => {
     if (visible) {
       if (propSelectedText) {
         setSelectedText(propSelectedText);
@@ -25187,7 +24903,7 @@ var FloatingAIButton = ({
       }
     }
   }, [visible, editor, propSelectedText]);
-  (0, import_react2.useEffect)(() => {
+  (0, import_react.useEffect)(() => {
     const handleClickOutside = (event) => {
       const target = event.target;
       if (!target.closest(".floating-ai-button")) {
@@ -25227,7 +24943,7 @@ var FloatingAIButton = ({
   if (!visible)
     return null;
   const enabledTemplates = templates.filter((template) => template.enabled);
-  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
     "div",
     {
       className: "floating-ai-button",
@@ -25238,7 +24954,7 @@ var FloatingAIButton = ({
         zIndex: 1e4
       },
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
           "button",
           {
             className: `floating-ai-main-button ${isProcessing ? "processing" : ""}`,
@@ -25246,7 +24962,7 @@ var FloatingAIButton = ({
             title: isProcessing ? "AI\u6B63\u5728\u5904\u7406..." : enabledTemplates.length === 1 ? enabledTemplates[0].name : "AI\u52A9\u624B",
             disabled: isProcessing,
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                 "svg",
                 {
                   className: "icon",
@@ -25255,10 +24971,10 @@ var FloatingAIButton = ({
                   width: "16",
                   height: "16",
                   style: { color: "var(--interactive-accent)" },
-                  children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M752 848a16 16 0 0 1 16 16v64a16 16 0 0 1-16 16H288a16 16 0 0 1-16-16v-64a16 16 0 0 1 16-16h464zM896 96a64 64 0 0 1 63.936 60.8L960 160V704a64 64 0 0 1-60.8 63.936L896 768H144a64 64 0 0 1-63.936-60.8L80 704V160a64 64 0 0 1 60.8-63.936l3.2-0.064H896zM864 192H176v480H864V192zM448 320v240H352V320H448z m240 0v240h-96V320h96z", fill: "currentColor" })
+                  children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M752 848a16 16 0 0 1 16 16v64a16 16 0 0 1-16 16H288a16 16 0 0 1-16-16v-64a16 16 0 0 1 16-16h464zM896 96a64 64 0 0 1 63.936 60.8L960 160V704a64 64 0 0 1-60.8 63.936L896 768H144a64 64 0 0 1-63.936-60.8L80 704V160a64 64 0 0 1 60.8-63.936l3.2-0.064H896zM864 192H176v480H864V192zM448 320v240H352V320H448z m240 0v240h-96V320h96z", fill: "currentColor" })
                 }
               ),
-              enabledTemplates.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
+              enabledTemplates.length > 1 && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                 "svg",
                 {
                   width: "8",
@@ -25271,40 +24987,40 @@ var FloatingAIButton = ({
                     transition: "transform 0.2s ease",
                     color: "var(--interactive-accent)"
                   },
-                  children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M7 10l5 5 5-5z" })
+                  children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M7 10l5 5 5-5z" })
                 }
               )
             ]
           }
         ),
-        isExpanded && enabledTemplates.length > 1 && !isProcessing && /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "floating-ai-menu", children: enabledTemplates.map((template) => /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
+        isExpanded && enabledTemplates.length > 1 && !isProcessing && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "floating-ai-menu", children: enabledTemplates.map((template) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
           "button",
           {
             className: "floating-ai-menu-item",
             onClick: () => handleTemplateSelect(template),
             title: template.prompt,
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("span", { className: "floating-ai-menu-item-icon", children: [
-                template.icon === "expand" && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.5", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M12 8v8m-4-4h8" })
+              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: "floating-ai-menu-item-icon", children: [
+                template.icon === "expand" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.5", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M12 8v8m-4-4h8" })
                 ] }),
-                template.icon === "edit" && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.5", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" })
+                template.icon === "edit" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.5", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" })
                 ] }),
-                template.icon === "globe" && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.5", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("circle", { cx: "12", cy: "12", r: "10" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "2", y1: "12", x2: "22", y2: "12" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" })
+                template.icon === "globe" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.5", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", { cx: "12", cy: "12", r: "10" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", { x1: "2", y1: "12", x2: "22", y2: "12" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" })
                 ] }),
-                template.icon === "bot" && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 1024 1024", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M291.584 806.314667c-13.909333 0-25.6-11.690667-25.6-25.6v-145.92c0-135.68 110.336-246.016 246.016-246.016s246.016 110.336 246.016 246.016v145.92c0 13.909333-11.690667 25.6-25.6 25.6H291.584z", fill: "currentColor", opacity: "0.8" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M627.114667 626.517333c-18.773333 0-34.133333-15.36-34.133334-34.133333v-36.096c0-18.773333 15.36-34.133333 34.133334-34.133333s34.133333 15.36 34.133333 34.133333v36.096c0 18.773333-15.36 34.133333-34.133333 34.133333zM396.885333 626.517333c-18.773333 0-34.133333-15.36-34.133333-34.133333v-36.096c0-18.773333 15.36-34.133333 34.133333-34.133333s34.133333 15.36 34.133334 34.133333v36.096c0 18.773333-15.36 34.133333-34.133334 34.133333z", fill: "currentColor" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("path", { d: "M580.266667 794.88H443.733333c-18.773333 0-34.133333-15.36-34.133333-34.133333V759.466667c0-18.773333 15.36-34.133333 34.133333-34.133334h136.533334c18.773333 0 34.133333 15.36 34.133333 34.133334v1.28c0 18.773333-15.36 34.133333-34.133333 34.133333z", fill: "currentColor" })
+                template.icon === "bot" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 1024 1024", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M291.584 806.314667c-13.909333 0-25.6-11.690667-25.6-25.6v-145.92c0-135.68 110.336-246.016 246.016-246.016s246.016 110.336 246.016 246.016v145.92c0 13.909333-11.690667 25.6-25.6 25.6H291.584z", fill: "currentColor", opacity: "0.8" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M627.114667 626.517333c-18.773333 0-34.133333-15.36-34.133334-34.133333v-36.096c0-18.773333 15.36-34.133333 34.133334-34.133333s34.133333 15.36 34.133333 34.133333v36.096c0 18.773333-15.36 34.133333-34.133333 34.133333zM396.885333 626.517333c-18.773333 0-34.133333-15.36-34.133333-34.133333v-36.096c0-18.773333 15.36-34.133333 34.133333-34.133333s34.133333 15.36 34.133334 34.133333v36.096c0 18.773333-15.36 34.133333-34.133334 34.133333z", fill: "currentColor" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M580.266667 794.88H443.733333c-18.773333 0-34.133333-15.36-34.133333-34.133333V759.466667c0-18.773333 15.36-34.133333 34.133333-34.133334h136.533334c18.773333 0 34.133333 15.36 34.133333 34.133334v1.28c0 18.773333-15.36 34.133333-34.133333 34.133333z", fill: "currentColor" })
                 ] })
               ] }),
-              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "floating-ai-menu-item-text", children: template.name })
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "floating-ai-menu-item-text", children: template.name })
             ]
           },
           template.id
@@ -25348,7 +25064,7 @@ var FloatingAIManager = class {
 			z-index: 10000;
 		`;
     document.body.appendChild(this.container);
-    this.root = (0, import_client2.createRoot)(this.container);
+    this.root = (0, import_client.createRoot)(this.container);
     this.handleLeafChangeBound = this.handleLeafChange.bind(this);
     this.app.workspace.on("active-leaf-change", this.handleLeafChangeBound);
     this.handleSelectionChangeBound = this.handleSelectionChange.bind(this);
@@ -25362,7 +25078,7 @@ var FloatingAIManager = class {
   }
   // 处理工作区叶子变化
   handleLeafChange(leaf) {
-    if ((leaf == null ? void 0 : leaf.view) instanceof import_obsidian3.MarkdownView) {
+    if ((leaf == null ? void 0 : leaf.view) instanceof import_obsidian2.MarkdownView) {
       this.currentEditor = leaf.view.editor;
     } else {
       this.currentEditor = null;
@@ -25464,7 +25180,7 @@ var FloatingAIManager = class {
     this.isVisible = true;
     this.container.style.pointerEvents = "auto";
     this.root.render(
-      import_react3.default.createElement(FloatingAIButton, {
+      import_react2.default.createElement(FloatingAIButton, {
         editor: this.currentEditor,
         templates: this.templates,
         onTemplateSelect: this.onTemplateSelect,
@@ -25483,7 +25199,7 @@ var FloatingAIManager = class {
     this.isVisible = false;
     this.container.style.pointerEvents = "none";
     this.root.render(
-      import_react3.default.createElement(FloatingAIButton, {
+      import_react2.default.createElement(FloatingAIButton, {
         editor: this.currentEditor,
         templates: this.templates,
         onTemplateSelect: this.onTemplateSelect,
@@ -25574,24 +25290,24 @@ var FloatingAIManager = class {
 };
 
 // src/InlineDiffManager.ts
-var import_obsidian4 = require("obsidian");
-var import_client3 = __toESM(require_client());
-var import_react6 = __toESM(require_react());
-
-// src/components/InlineDiff.tsx
+var import_obsidian3 = require("obsidian");
+var import_client2 = __toESM(require_client());
 var import_react5 = __toESM(require_react());
 
-// src/components/TypewriterDisplay.tsx
+// src/components/InlineDiff.tsx
 var import_react4 = __toESM(require_react());
-var import_jsx_runtime4 = __toESM(require_jsx_runtime());
+
+// src/components/TypewriterDisplay.tsx
+var import_react3 = __toESM(require_react());
+var import_jsx_runtime2 = __toESM(require_jsx_runtime());
 var TypewriterDisplay = ({
   content,
   speed = 30,
   onComplete
 }) => {
-  const [displayedText, setDisplayedText] = (0, import_react4.useState)("");
-  const [currentIndex, setCurrentIndex] = (0, import_react4.useState)(0);
-  (0, import_react4.useEffect)(() => {
+  const [displayedText, setDisplayedText] = (0, import_react3.useState)("");
+  const [currentIndex, setCurrentIndex] = (0, import_react3.useState)(0);
+  (0, import_react3.useEffect)(() => {
     if (currentIndex < content.length) {
       const timer = setTimeout(() => {
         setDisplayedText((prev) => prev + content[currentIndex]);
@@ -25602,11 +25318,11 @@ var TypewriterDisplay = ({
       onComplete();
     }
   }, [currentIndex, content, speed, onComplete]);
-  (0, import_react4.useEffect)(() => {
+  (0, import_react3.useEffect)(() => {
     setDisplayedText("");
     setCurrentIndex(0);
   }, [content]);
-  return /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "typewriter-display", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("pre", { style: {
+  return /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { className: "typewriter-display", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("pre", { style: {
     whiteSpace: "pre-wrap",
     fontFamily: "var(--font-monospace)",
     fontSize: "14px",
@@ -25614,7 +25330,7 @@ var TypewriterDisplay = ({
     margin: 0
   }, children: [
     displayedText,
-    currentIndex < content.length && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+    currentIndex < content.length && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
       "span",
       {
         className: "typewriter-cursor",
@@ -25633,7 +25349,7 @@ var TypewriterDisplay = ({
 };
 
 // src/components/InlineDiff.tsx
-var import_jsx_runtime5 = __toESM(require_jsx_runtime());
+var import_jsx_runtime3 = __toESM(require_jsx_runtime());
 var InlineDiff = ({
   editor,
   originalText,
@@ -25642,60 +25358,60 @@ var InlineDiff = ({
   onReject,
   onComplete
 }) => {
-  const [showTypewriter, setShowTypewriter] = (0, import_react5.useState)(true);
-  const [displayedResult, setDisplayedResult] = (0, import_react5.useState)("");
+  const [showTypewriter, setShowTypewriter] = (0, import_react4.useState)(true);
+  const [displayedResult, setDisplayedResult] = (0, import_react4.useState)("");
   const handleTypewriterComplete = () => {
     setShowTypewriter(false);
     setDisplayedResult(aiResult);
     if (onComplete)
       onComplete();
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "inline-diff-container", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "diff-section original", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "diff-header", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "diff-marker", children: "-" }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "diff-label", children: "\u539F\u6587" })
+  return /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "inline-diff-container", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "diff-section original", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "diff-header", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "diff-marker", children: "-" }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "diff-label", children: "\u539F\u6587" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "diff-content original-content", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("pre", { children: originalText }) })
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "diff-content original-content", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("pre", { children: originalText }) })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "diff-section suggested", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "diff-header", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "diff-marker", children: "+" }),
-        /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("span", { className: "diff-label", children: "AI\u5EFA\u8BAE" })
+    /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "diff-section suggested", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "diff-header", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "diff-marker", children: "+" }),
+        /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("span", { className: "diff-label", children: "AI\u5EFA\u8BAE" })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("div", { className: "diff-content suggested-content", children: showTypewriter ? /* @__PURE__ */ (0, import_jsx_runtime5.jsx)(
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("div", { className: "diff-content suggested-content", children: showTypewriter ? /* @__PURE__ */ (0, import_jsx_runtime3.jsx)(
         TypewriterDisplay,
         {
           content: aiResult,
           speed: 15,
           onComplete: handleTypewriterComplete
         }
-      ) : /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("pre", { children: displayedResult }) })
+      ) : /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("pre", { children: displayedResult }) })
     ] }),
-    !showTypewriter && /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("div", { className: "diff-actions", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
+    !showTypewriter && /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("div", { className: "diff-actions", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
         "button",
         {
           className: "diff-action-btn reject-btn",
           onClick: onReject,
           title: "\u62D2\u7EDD\u6B64\u66F4\u6539",
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("line", { x1: "18", y1: "6", x2: "6", y2: "18" }),
-              /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("line", { x1: "6", y1: "6", x2: "18", y2: "18" })
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "18", y1: "6", x2: "6", y2: "18" }),
+              /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("line", { x1: "6", y1: "6", x2: "18", y2: "18" })
             ] }),
             "\u62D2\u7EDD"
           ]
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime5.jsxs)(
+      /* @__PURE__ */ (0, import_jsx_runtime3.jsxs)(
         "button",
         {
           className: "diff-action-btn accept-btn",
           onClick: onAccept,
           title: "\u63A5\u53D7\u6B64\u66F4\u6539",
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: /* @__PURE__ */ (0, import_jsx_runtime5.jsx)("polyline", { points: "20,6 9,17 4,12" }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: /* @__PURE__ */ (0, import_jsx_runtime3.jsx)("polyline", { points: "20,6 9,17 4,12" }) }),
             "\u63A5\u53D7"
           ]
         }
@@ -25723,9 +25439,9 @@ var InlineDiffManager = class {
 			position: relative;
 			z-index: 100;
 		`;
-    const root = (0, import_client3.createRoot)(diffContainer);
+    const root = (0, import_client2.createRoot)(diffContainer);
     root.render(
-      import_react6.default.createElement(InlineDiff, {
+      import_react5.default.createElement(InlineDiff, {
         editor,
         originalText,
         aiResult,
@@ -25757,7 +25473,7 @@ var InlineDiffManager = class {
     const session = this.activeSessions.get(sessionId);
     if (!session)
       return;
-    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
+    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian3.MarkdownView);
     if (activeView) {
       const editor = activeView.editor;
       editor.setSelection(session.originalFrom, session.originalTo);
@@ -25785,7 +25501,7 @@ var InlineDiffManager = class {
   }
   // 获取编辑器视图
   getEditorView(editor) {
-    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
+    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian3.MarkdownView);
     return (activeView == null ? void 0 : activeView.editor) === editor ? activeView : null;
   }
   // 清理所有活动会话
@@ -25794,6 +25510,405 @@ var InlineDiffManager = class {
       this.cleanupSession(sessionId);
     }
     this.activeSessions.clear();
+  }
+};
+
+// src/view.tsx
+var import_obsidian4 = require("obsidian");
+var import_client3 = __toESM(require_client());
+var import_react6 = __toESM(require_react());
+init_api();
+var import_jsx_runtime4 = __toESM(require_jsx_runtime());
+var VIEW_TYPE_SIMPLE_AI = "simple-ai-view";
+var MAX_SELECTION_PREVIEW = 300;
+var AIChatSidebar = ({ app, api, getEditor }) => {
+  const [messages, setMessages] = (0, import_react6.useState)([]);
+  const [input, setInput] = (0, import_react6.useState)("");
+  const [isSending, setIsSending] = (0, import_react6.useState)(false);
+  const [selectedFiles, setSelectedFiles] = (0, import_react6.useState)([]);
+  const [selectionPreview, setSelectionPreview] = (0, import_react6.useState)("");
+  const [selectionFull, setSelectionFull] = (0, import_react6.useState)("");
+  const [rootFolder, setRootFolder] = (0, import_react6.useState)(null);
+  (0, import_react6.useEffect)(() => {
+    setRootFolder(app.vault.getRoot());
+  }, [app]);
+  (0, import_react6.useEffect)(() => {
+    const updateSelection = () => {
+      const editor = getEditor();
+      if (!editor) {
+        return;
+      }
+      const sel = editor.getSelection();
+      const trimmed = sel ? sel.toString().trim() : "";
+      if (trimmed) {
+        setSelectionFull(trimmed);
+        const preview = trimmed.length > MAX_SELECTION_PREVIEW ? trimmed.slice(0, MAX_SELECTION_PREVIEW) + "\u2026" : trimmed;
+        setSelectionPreview(preview);
+      }
+    };
+    updateSelection();
+    const handler = () => updateSelection();
+    document.addEventListener("selectionchange", handler);
+    const intervalId = window.setInterval(updateSelection, 500);
+    return () => {
+      document.removeEventListener("selectionchange", handler);
+      window.clearInterval(intervalId);
+    };
+  }, [getEditor]);
+  const selectedFileNames = (0, import_react6.useMemo)(
+    () => selectedFiles.map((f) => f.basename),
+    [selectedFiles]
+  );
+  const clearSelectionPreview = () => {
+    setSelectionPreview("");
+    setSelectionFull("");
+  };
+  const openDocPicker = () => {
+    if (!rootFolder)
+      return;
+    new DocPickerModal(app, rootFolder, selectedFiles, (files) => {
+      setSelectedFiles(files);
+    }).open();
+  };
+  const handleSend = async () => {
+    const prompt = input.trim();
+    if (!prompt)
+      return;
+    setIsSending(true);
+    setMessages((prev) => [...prev, { role: "user", content: prompt }]);
+    try {
+      const contextParts = [];
+      if (selectionFull) {
+        contextParts.push(`\u3010\u5F53\u524D\u9009\u4E2D\u5185\u5BB9\u3011
+${selectionFull}`);
+      }
+      if (selectedFiles.length > 0) {
+        const docs = await Promise.all(
+          selectedFiles.map(async (f) => {
+            const content = await app.vault.read(f);
+            return `# ${f.basename}
+${content}`;
+          })
+        );
+        contextParts.push(`\u3010\u9009\u4E2D\u6587\u6863\u3011
+${docs.join("\n\n---\n\n")}`);
+      }
+      const contextText = contextParts.join("\n\n");
+      const userMessage = contextText ? `\u8BF7\u7ED3\u5408\u4EE5\u4E0B\u4E0A\u4E0B\u6587\u56DE\u7B54\uFF1A
+
+${contextText}
+
+\u3010\u7528\u6237\u95EE\u9898\u3011
+${prompt}` : prompt;
+      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+      await api.chatCompletionStream([
+        { role: "system", content: api.settings.systemPrompt },
+        { role: "user", content: userMessage }
+      ], (chunk) => {
+        setMessages((prev) => {
+          const next = [...prev];
+          const lastIndex = next.length - 1;
+          if (lastIndex >= 0 && next[lastIndex].role === "assistant") {
+            next[lastIndex] = { role: "assistant", content: next[lastIndex].content + chunk };
+          }
+          return next;
+        });
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "\u672A\u77E5\u9519\u8BEF";
+      setMessages((prev) => [...prev, { role: "assistant", content: `\u51FA\u9519\uFF1A${msg}` }]);
+    } finally {
+      setIsSending(false);
+      setInput("");
+    }
+  };
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (_) {
+    }
+  };
+  return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "simple-ai-modal", style: { height: "100%", width: "100%", display: "flex", flexDirection: "column" }, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "simple-ai-header", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h3", { children: "Simple AI \u5BF9\u8BDD" }) }),
+    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "simple-ai-content", style: { display: "flex", flexDirection: "column", gap: 12, flex: 1, minHeight: 0 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { flex: 1, overflowY: "auto", border: "1px solid var(--background-modifier-border)", borderRadius: 6, padding: 12, minHeight: 0 }, children: [
+        messages.length === 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { color: "var(--text-muted)", fontSize: 13 }, children: "\u5F00\u59CB\u5BF9\u8BDD\u5427\uFF0C\u9009\u62E9\u6587\u6863\u53EF\u4F5C\u4E3A\u4E0A\u4E0B\u6587\u3002" }),
+        messages.map((m, idx) => /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: {
+          display: "flex",
+          justifyContent: m.role === "user" ? "flex-end" : "flex-start",
+          margin: "8px 0"
+        }, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
+          maxWidth: "80%",
+          background: m.role === "user" ? "var(--interactive-accent)" : "var(--background-primary-alt)",
+          color: m.role === "user" ? "var(--text-on-accent)" : "var(--text-normal)",
+          padding: "8px 10px",
+          borderRadius: 8,
+          position: "relative",
+          border: m.role === "assistant" ? "1px solid var(--background-modifier-border)" : "none"
+        }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("pre", { style: { whiteSpace: "pre-wrap", margin: 0, fontFamily: "var(--font-monospace)", fontSize: 13 }, children: m.content }),
+          m.role === "assistant" && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { display: "flex", justifyContent: "flex-end", marginTop: 6 }, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+            "button",
+            {
+              className: "simple-ai-result-btn",
+              style: { width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 },
+              onClick: () => copyToClipboard(m.content),
+              title: "\u590D\u5236",
+              children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: [
+                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("rect", { x: "9", y: "9", width: "13", height: "13", rx: "2", ry: "2" }),
+                /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" })
+              ] })
+            }
+          ) })
+        ] }) }, idx))
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: 8 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "simple-ai-input-section", style: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { className: "simple-ai-result-btn", onClick: openDocPicker, children: "\u9009\u62E9\u6587\u6863" }),
+          selectedFileNames.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { color: "var(--text-muted)", fontSize: 12 }, children: [
+            "\u5DF2\u9009\u62E9\uFF1A",
+            selectedFileNames.join("\uFF0C")
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "simple-ai-input-section", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("label", { children: "\u5F53\u524D\u6587\u6863\u9009\u4E2D\u5185\u5BB9\uFF08\u4E0A\u4E0B\u6587\uFF09\uFF1A" }),
+          /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
+            border: "1px dashed var(--background-modifier-border)",
+            borderRadius: 6,
+            padding: 8,
+            minHeight: 40,
+            background: "var(--background-primary)",
+            position: "relative"
+          }, children: [
+            selectionPreview || /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { color: "var(--text-muted)" }, children: "\uFF08\u6682\u65E0\u9009\u4E2D\u5185\u5BB9\uFF0C\u5207\u56DE\u7F16\u8F91\u5668\u9009\u62E9\u6587\u672C\uFF09" }),
+            selectionPreview && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { className: "simple-ai-result-btn", style: { position: "absolute", top: 6, right: 6, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }, onClick: clearSelectionPreview, title: "\u6E05\u9664", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("polyline", { points: "3 6 5 6 21 6" }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M10 11v6M14 11v6" }),
+              /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("path", { d: "M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" })
+            ] }) })
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { style: { display: "flex", gap: 8 }, children: /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: {
+        display: "flex",
+        alignItems: "flex-end",
+        gap: 8,
+        border: "1px solid var(--background-modifier-border)",
+        borderRadius: 8,
+        padding: 6,
+        background: "var(--background-primary)",
+        width: "100%"
+      }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          "textarea",
+          {
+            className: "simple-ai-textarea",
+            rows: 3,
+            placeholder: "\u8F93\u5165\u6D88\u606F...",
+            style: { border: "none", boxShadow: "none", outline: "none" },
+            value: input,
+            onChange: (e) => setInput(e.target.value),
+            onKeyDown: (e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                if (!isSending && input.trim())
+                  handleSend();
+              }
+            },
+            disabled: isSending
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+          "button",
+          {
+            className: `simple-ai-result-btn ${isSending ? "loading" : "primary"}`,
+            onClick: handleSend,
+            disabled: isSending || !input.trim(),
+            style: { height: 36 },
+            children: isSending ? "\u53D1\u9001\u4E2D..." : "\u53D1\u9001"
+          }
+        )
+      ] }) })
+    ] })
+  ] });
+};
+var SimpleAIView = class extends import_obsidian4.ItemView {
+  constructor(leaf, plugin) {
+    super(leaf);
+    this.root = null;
+    this.editor = null;
+    this.plugin = plugin;
+    this.api = new OpenAIAPI(plugin.settings);
+  }
+  getViewType() {
+    return VIEW_TYPE_SIMPLE_AI;
+  }
+  getDisplayText() {
+    return "Simple AI";
+  }
+  async onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    this.containerEl.style.height = "100%";
+    contentEl.style.height = "100%";
+    this.api.updateSettings(this.plugin.settings);
+    this.root = (0, import_client3.createRoot)(contentEl);
+    this.root.render(
+      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+        AIChatSidebar,
+        {
+          app: this.app,
+          api: this.api,
+          getEditor: () => {
+            var _a, _b, _c;
+            return (_c = (_b = this.editor) != null ? _b : (_a = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView)) == null ? void 0 : _a.editor) != null ? _c : null;
+          }
+        }
+      )
+    );
+  }
+  async onClose() {
+    if (this.root) {
+      this.root.unmount();
+      this.root = null;
+    }
+    const { contentEl } = this;
+    contentEl.empty();
+  }
+  // 外部可设置当前编辑器
+  setContext(editor, _initialText) {
+    this.editor = editor;
+  }
+};
+var DocPickerModal = class extends import_obsidian4.Modal {
+  constructor(app, root, preselected, onConfirm) {
+    super(app);
+    this.query = "";
+    this.expanded = /* @__PURE__ */ new Set();
+    this.root = root;
+    this.onConfirm = onConfirm;
+    this.selected = new Set(preselected.map((f) => f.path));
+    this.expanded.add(root.path);
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h3", { text: "\u9009\u62E9\u6587\u6863" });
+    const search = contentEl.createEl("input", { type: "text", attr: { placeholder: "\u641C\u7D22\u6587\u6863..." } });
+    search.style.width = "100%";
+    search.style.margin = "8px 0";
+    search.addEventListener("input", () => {
+      this.query = search.value.trim().toLowerCase();
+      renderList();
+    });
+    const listContainer = contentEl.createDiv();
+    listContainer.style.maxHeight = "50vh";
+    listContainer.style.overflowY = "auto";
+    listContainer.style.border = "1px solid var(--background-modifier-border)";
+    listContainer.style.borderRadius = "6px";
+    listContainer.style.padding = "6px";
+    const btnBar = contentEl.createDiv();
+    btnBar.style.display = "flex";
+    btnBar.style.justifyContent = "flex-end";
+    btnBar.style.gap = "8px";
+    btnBar.style.marginTop = "10px";
+    const cancelBtn = btnBar.createEl("button", { text: "\u53D6\u6D88" });
+    cancelBtn.onclick = () => this.close();
+    const okBtn = btnBar.createEl("button", { text: "\u786E\u5B9A", cls: "mod-cta" });
+    okBtn.onclick = () => {
+      const chosen = [];
+      const collect = (folder) => {
+        folder.children.forEach((child) => {
+          if (child instanceof import_obsidian4.TFolder)
+            collect(child);
+          else if (child instanceof import_obsidian4.TFile) {
+            if (this.selected.has(child.path))
+              chosen.push(child);
+          }
+        });
+      };
+      collect(this.root);
+      this.onConfirm(chosen);
+      this.close();
+    };
+    const renderList = () => {
+      listContainer.empty();
+      const renderFolder = (folder, depth) => {
+        const matchesFolder = folder.name.toLowerCase().includes(this.query);
+        const matchingChildren = folder.children.filter((c) => {
+          if (c instanceof import_obsidian4.TFolder)
+            return true;
+          if (c instanceof import_obsidian4.TFile)
+            return c.basename.toLowerCase().includes(this.query);
+          return false;
+        });
+        const header = listContainer.createDiv();
+        header.style.display = "flex";
+        header.style.alignItems = "center";
+        header.style.gap = "6px";
+        header.style.padding = "4px 2px";
+        header.style.cursor = "pointer";
+        header.style.marginLeft = `${depth * 12}px`;
+        header.style.color = "var(--text-muted)";
+        const caretWrapper = header.createDiv();
+        caretWrapper.style.width = "14px";
+        caretWrapper.style.height = "14px";
+        const ns = "http://www.w3.org/2000/svg";
+        const caret = document.createElementNS(ns, "svg");
+        caret.setAttribute("width", "14");
+        caret.setAttribute("height", "14");
+        caret.setAttribute("viewBox", "0 0 24 24");
+        const poly = document.createElementNS(ns, "polyline");
+        poly.setAttribute("points", "9 6 15 12 9 18");
+        poly.setAttribute("fill", "none");
+        poly.setAttribute("stroke", "currentColor");
+        poly.setAttribute("stroke-width", "2");
+        poly.setAttribute("stroke-linecap", "round");
+        poly.setAttribute("stroke-linejoin", "round");
+        caret.appendChild(poly);
+        caret.style.transform = this.expanded.has(folder.path) ? "rotate(90deg)" : "none";
+        caret.style.transformOrigin = "50% 50%";
+        caretWrapper.appendChild(caret);
+        header.createEl("strong", { text: folder.name || "/" });
+        header.onclick = () => {
+          if (this.expanded.has(folder.path))
+            this.expanded.delete(folder.path);
+          else
+            this.expanded.add(folder.path);
+          renderList();
+        };
+        if (!this.expanded.has(folder.path))
+          return;
+        folder.children.forEach((child) => {
+          if (child instanceof import_obsidian4.TFolder) {
+            if (this.query) {
+            }
+            renderFolder(child, depth + 1);
+          } else if (child instanceof import_obsidian4.TFile) {
+            if (this.query && !child.basename.toLowerCase().includes(this.query))
+              return;
+            const row = listContainer.createDiv();
+            row.style.display = "flex";
+            row.style.alignItems = "center";
+            row.style.gap = "8px";
+            row.style.padding = "4px 2px";
+            row.style.marginLeft = `${(depth + 1) * 12}px`;
+            const cb = row.createEl("input", { type: "checkbox" });
+            cb.checked = this.selected.has(child.path);
+            cb.onchange = () => {
+              if (cb.checked)
+                this.selected.add(child.path);
+              else
+                this.selected.delete(child.path);
+            };
+            row.createEl("span", { text: child.basename });
+          }
+        });
+      };
+      renderFolder(this.root, 0);
+    };
+    renderList();
   }
 };
 
@@ -25809,11 +25924,15 @@ var SimpleAIPlugin = class extends import_obsidian5.Plugin {
     this.addSettingTab(new SimpleAISettingTab(this.app, this));
     this.initFloatingAIManager();
     this.inlineDiffManager = new InlineDiffManager(this.app);
+    this.registerView(
+      VIEW_TYPE_SIMPLE_AI,
+      (leaf) => new SimpleAIView(leaf, this)
+    );
     this.addCommand({
       id: "open-ai-assistant",
       name: "\u6253\u5F00AI\u52A9\u624B",
       editorCallback: (editor) => {
-        new SimpleAIModal(this.app, this, editor).open();
+        this.activateSimpleAIView(editor);
       }
     });
   }
@@ -25825,6 +25944,10 @@ var SimpleAIPlugin = class extends import_obsidian5.Plugin {
     if (this.inlineDiffManager) {
       this.inlineDiffManager.cleanup();
       this.inlineDiffManager = null;
+    }
+    const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIMPLE_AI);
+    for (const leaf of leaves) {
+      leaf.detach();
     }
   }
   async loadSettings() {
@@ -25846,6 +25969,21 @@ var SimpleAIPlugin = class extends import_obsidian5.Plugin {
       this.settings.templates,
       this.handleFloatingButtonTemplateSelect.bind(this)
     );
+  }
+  // 打开并激活右侧 Simple AI 视图
+  async activateSimpleAIView(editor) {
+    const selectedText = editor.getSelection();
+    const initialText = selectedText || editor.getLine(editor.getCursor().line);
+    let leaf = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIMPLE_AI)[0];
+    if (!leaf) {
+      leaf = this.app.workspace.getRightLeaf(false);
+    }
+    if (!leaf)
+      return;
+    await leaf.setViewState({ type: VIEW_TYPE_SIMPLE_AI, active: true });
+    await this.app.workspace.revealLeaf(leaf);
+    const view = leaf.view;
+    view.setContext(editor, initialText);
   }
   // 处理浮动按钮模板选择
   async handleFloatingButtonTemplateSelect(template, selectedText) {
