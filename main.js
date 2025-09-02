@@ -1240,7 +1240,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useReducer(reducer, initialArg, init);
         }
-        function useRef2(initialValue) {
+        function useRef3(initialValue) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
@@ -2034,7 +2034,7 @@ var require_react_development = __commonJS({
         exports.useLayoutEffect = useLayoutEffect;
         exports.useMemo = useMemo2;
         exports.useReducer = useReducer;
-        exports.useRef = useRef2;
+        exports.useRef = useRef3;
         exports.useState = useState5;
         exports.useSyncExternalStore = useSyncExternalStore;
         exports.useTransition = useTransition;
@@ -24611,7 +24611,7 @@ __export(main_exports, {
   default: () => SimpleAIPlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian5 = require("obsidian");
+var import_obsidian6 = require("obsidian");
 
 // src/settings.ts
 var import_obsidian = require("obsidian");
@@ -24753,9 +24753,33 @@ var TemplateEditModal = class extends import_obsidian.Modal {
     new import_obsidian.Setting(contentEl).setName("\u6A21\u677F\u540D\u79F0").setDesc("\u5728\u53F3\u952E\u83DC\u5355\u4E2D\u663E\u793A\u7684\u540D\u79F0").addText((text) => text.setValue(this.template.name).onChange((value) => {
       this.template.name = value;
     }));
-    new import_obsidian.Setting(contentEl).setName("\u56FE\u6807").setDesc("\u83DC\u5355\u9879\u7684\u56FE\u6807\u540D\u79F0").addText((text) => text.setValue(this.template.icon).onChange((value) => {
-      this.template.icon = value;
-    }));
+    const iconSetting = new import_obsidian.Setting(contentEl).setName("\u56FE\u6807").setDesc("\u4ECE Lucide \u56FE\u6807\u5E93\u4E2D\u9009\u62E9\u4E00\u4E2A\u56FE\u6807");
+    const previewContainer = iconSetting.controlEl.createDiv({ cls: "ai-template-icon-preview" });
+    previewContainer.style.display = "inline-flex";
+    previewContainer.style.alignItems = "center";
+    previewContainer.style.gap = "8px";
+    previewContainer.style.marginRight = "8px";
+    const previewIcon = previewContainer.createSpan({ cls: "ai-template-icon-preview-icon" });
+    previewIcon.style.width = "18px";
+    previewIcon.style.height = "18px";
+    previewIcon.style.display = "inline-flex";
+    previewIcon.style.alignItems = "center";
+    previewIcon.style.justifyContent = "center";
+    (0, import_obsidian.setIcon)(previewIcon, this.template.icon || "bot");
+    const iconNameLabel = previewContainer.createEl("code", { text: this.template.icon || "bot" });
+    iconNameLabel.style.fontSize = "12px";
+    iconNameLabel.style.opacity = "0.8";
+    const openPicker = () => {
+      const picker = new IconPickerModal(this.app, this.template.icon || "bot", (iconId) => {
+        this.template.icon = iconId;
+        (0, import_obsidian.setIcon)(previewIcon, iconId);
+        iconNameLabel.textContent = iconId;
+      });
+      picker.open();
+    };
+    iconSetting.addButton(
+      (btn) => btn.setButtonText("\u9009\u62E9\u56FE\u6807").onClick(() => openPicker())
+    );
     new import_obsidian.Setting(contentEl).setName("\u63D0\u793A\u8BCD").setDesc("\u53D1\u9001\u7ED9AI\u7684\u6307\u4EE4\uFF0C\u6587\u672C\u5185\u5BB9\u4F1A\u9644\u52A0\u5728\u63D0\u793A\u8BCD\u540E\u9762").addTextArea((text) => {
       text.setValue(this.template.prompt).onChange((value) => {
         this.template.prompt = value;
@@ -24785,27 +24809,281 @@ var TemplateEditModal = class extends import_obsidian.Modal {
     contentEl.empty();
   }
 };
+var IconPickerModal = class extends import_obsidian.Modal {
+  constructor(app, currentIcon, onSelect) {
+    super(app);
+    this.query = "";
+    // 精选一组常用 Lucide 图标（轻量）
+    this.ICONS = [
+      "bot",
+      "wand-2",
+      "sparkles",
+      "stars",
+      "cpu",
+      "brain",
+      "lightbulb",
+      "rocket",
+      "pencil",
+      "edit-3",
+      "highlighter",
+      "eraser",
+      "scissors",
+      "replace",
+      "scan-text",
+      "globe",
+      "languages",
+      "translate",
+      "book",
+      "book-open",
+      "text-cursor-input",
+      "align-left",
+      "align-center",
+      "align-right",
+      "list",
+      "list-ordered",
+      "list-checks",
+      "check",
+      "check-circle",
+      "copy",
+      "clipboard",
+      "clipboard-check",
+      "clipboard-edit",
+      "search",
+      "zoom-in",
+      "zoom-out",
+      "maximize",
+      "minimize",
+      "expand",
+      "shrink",
+      "star",
+      "bookmark",
+      "tag",
+      "send",
+      "arrow-right",
+      "arrow-up-right",
+      "arrow-down-right"
+    ];
+    this.currentIcon = currentIcon;
+    this.onSelect = onSelect;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h3", { text: "\u9009\u62E9\u56FE\u6807" });
+    const desc = contentEl.createEl("p", { text: "\u70B9\u51FB\u4E0B\u65B9\u4EFB\u610F\u56FE\u6807\u4EE5\u9009\u62E9\u3002\u8F93\u5165\u53EF\u7B5B\u9009\uFF08\u652F\u6301 Lucide \u56FE\u6807\u540D\uFF09\u3002", cls: "setting-item-description" });
+    desc.style.marginTop = "-6px";
+    const searchWrap = contentEl.createDiv();
+    searchWrap.style.display = "flex";
+    searchWrap.style.gap = "8px";
+    searchWrap.style.margin = "8px 0 12px 0";
+    const searchInput = searchWrap.createEl("input", { type: "text", placeholder: "\u641C\u7D22\u56FE\u6807\uFF08\u4F8B\u5982\uFF1Apencil, wand-2, languages\uFF09" });
+    searchInput.value = this.query;
+    searchInput.style.width = "100%";
+    searchInput.style.padding = "6px 8px";
+    const grid = contentEl.createDiv();
+    grid.style.display = "grid";
+    grid.style.gridTemplateColumns = "repeat(auto-fill, minmax(120px, 1fr))";
+    grid.style.gap = "8px";
+    grid.style.maxHeight = "380px";
+    grid.style.overflow = "auto";
+    grid.style.border = "1px solid var(--background-modifier-border)";
+    grid.style.padding = "8px";
+    grid.style.borderRadius = "6px";
+    const buildList = () => {
+      grid.empty();
+      const kw = this.query.trim().toLowerCase();
+      const items = this.ICONS.filter((id) => !kw || id.includes(kw));
+      items.forEach((id) => {
+        const item = grid.createEl("button", { cls: "icon-option" });
+        item.style.display = "flex";
+        item.style.alignItems = "center";
+        item.style.gap = "8px";
+        item.style.padding = "6px 8px";
+        item.style.border = "1px solid var(--background-modifier-border)";
+        item.style.borderRadius = "6px";
+        item.style.background = "var(--background-primary)";
+        item.style.cursor = "pointer";
+        const iconHolder = item.createSpan();
+        iconHolder.style.width = "18px";
+        iconHolder.style.height = "18px";
+        (0, import_obsidian.setIcon)(iconHolder, id);
+        const nameSpan = item.createEl("span", { text: id });
+        nameSpan.style.fontSize = "12px";
+        nameSpan.style.color = "var(--text-muted)";
+        if (id === this.currentIcon) {
+          item.style.outline = "2px solid var(--interactive-accent)";
+        }
+        item.onclick = () => {
+          this.onSelect(id);
+          this.close();
+        };
+      });
+    };
+    buildList();
+    searchInput.addEventListener("input", () => {
+      this.query = searchInput.value;
+      buildList();
+    });
+  }
+};
 
 // src/types.ts
 var DEFAULT_TEMPLATES = [
   {
+    id: "improve_writing",
+    name: "\u63D0\u5347\u5199\u4F5C",
+    prompt: `\u4F60\u662F\u4E00\u4F4D\u4E13\u4E1A\u7684\u6587\u6848\u7F16\u8F91\uFF0C\u64C5\u957F\u5C06\u7C97\u7CD9\u7684\u521D\u7A3F\u6253\u78E8\u6210\u7ED3\u6784\u6E05\u6670\u3001\u8868\u8FBE\u7CBE\u51C6\u3001\u98CE\u683C\u7EDF\u4E00\u4E14\u5177\u6709\u8BF4\u670D\u529B\u7684\u4F18\u8D28\u6587\u672C\u3002
+### \u5DE5\u4F5C\u6D41\u7A0B
+1. \u5206\u6790\u539F\u6587
+	- \u6DF1\u5165\u7406\u89E3\u539F\u6587\u5185\u5BB9\u548C\u610F\u56FE
+	- \u8BC4\u4F30\u76EE\u6807\u53D7\u4F17\u548C\u5199\u4F5C\u98CE\u683C
+	- \u627E\u51FA\u4E3B\u8981\u95EE\u9898\u70B9
+2. \u5236\u5B9A\u6539\u8FDB\u7B56\u7565
+	- \u786E\u5B9A\u9700\u8981\u91CD\u70B9\u6539\u8FDB\u7684\u65B9\u9762
+	- \u4FDD\u6301\u539F\u6587\u7684\u6838\u5FC3\u610F\u601D
+	- \u8003\u8651\u6587\u5316\u80CC\u666F\u548C\u8BED\u8A00\u4E60\u60EF
+3. \u6267\u884C\u6539\u8FDB
+	- \u9010\u53E5\u5206\u6790\u5E76\u91CD\u5199
+	- \u4F18\u5316\u6574\u4F53\u7ED3\u6784\u548C\u6D41\u7A0B
+	- \u786E\u4FDD\u6539\u8FDB\u540E\u7684\u6587\u672C\u7B26\u5408\u5199\u4F5C\u89C4\u8303
+4. \u8D28\u91CF\u68C0\u67E5
+	- \u9A8C\u8BC1\u610F\u601D\u662F\u5426\u4FDD\u6301\u4E00\u81F4
+	- \u68C0\u67E5\u8BED\u6CD5\u548C\u7528\u8BCD\u51C6\u786E\u6027
+	- \u786E\u4FDD\u6539\u8FDB\u786E\u5B9E\u63D0\u5347\u4E86\u6587\u672C\u8D28\u91CF
+
+### \u6CE8\u610F\u4E8B\u9879
+\u4F60\u5728markdown\u6587\u6863\u4E2D\u5DE5\u4F5C\uFF0C\u786E\u4FDD\u8F93\u51FA\u7684\u662Fmarkdown\u683C\u5F0F\u3002
+\u539F\u6587\u672C\u53EF\u80FD\u5305\u542Bmarkdown\u683C\u5F0F\uFF0C\u4F60\u9700\u8981\u4FDD\u6301\u539F\u6587\u672C\u7684markdown\u683C\u5F0F\u3002
+
+### \u8F93\u51FA\u8981\u6C42
+\u76F4\u63A5\u8FD4\u56DE\u4FEE\u6539\u540E\u7684\u6587\u672C\uFF0C\u9664\u6B64\u4E4B\u5916\u4E0D\u8981\u8FD4\u56DE\u4EFB\u4F55\u89E3\u91CA\u6027\u7B49\u6587\u5B57\uFF1A`,
+    icon: "stars",
+    enabled: true
+  },
+  {
     id: "expand",
     name: "\u6269\u5199",
-    prompt: "\u8BF7\u6269\u5C55\u4EE5\u4E0B\u6587\u672C\uFF0C\u6DFB\u52A0\u66F4\u591A\u7EC6\u8282\u3001\u4F8B\u5B50\u548C\u89E3\u91CA\uFF0C\u4F7F\u5185\u5BB9\u66F4\u52A0\u4E30\u5BCC\u548C\u5B8C\u6574\uFF1A",
+    prompt: `\u4F60\u662F\u4E00\u4F4D\u4E13\u4E1A\u7684\u6587\u6848\u7F16\u8F91\uFF0C\u64C5\u957F\u5C06\u7B80\u6D01\u7684\u6587\u672C\u3001\u5927\u7EB2\u6216\u8981\u70B9\u6269\u5C55\u6210\u8BE6\u7EC6\u3001\u4E30\u5BCC\u3001\u7ED3\u6784\u5B8C\u6574\u7684\u957F\u6587\u672C\uFF0C\u540C\u65F6\u4FDD\u6301\u903B\u8F91\u6E05\u6670\u548C\u5185\u5BB9\u8FDE\u8D2F\u3002
+
+### \u5DE5\u4F5C\u6D41\u7A0B
+1. \u5206\u6790\u539F\u6587
+  - \u6DF1\u5165\u7406\u89E3\u539F\u6587\u7684\u6838\u5FC3\u89C2\u70B9\u548C\u4E3B\u8981\u5185\u5BB9
+  - \u8BC6\u522B\u6587\u672C\u7C7B\u578B\u548C\u76EE\u6807\u53D7\u4F17
+  - \u627E\u51FA\u53EF\u4EE5\u6269\u5C55\u7684\u5173\u952E\u70B9\u548C\u8584\u5F31\u73AF\u8282
+2. \u5236\u5B9A\u6269\u5199\u7B56\u7565
+  - \u786E\u5B9A\u6269\u5199\u7684\u91CD\u70B9\u65B9\u5411\u548C\u6DF1\u5EA6
+  - \u4FDD\u6301\u539F\u6587\u7684\u6838\u5FC3\u601D\u60F3\u548C\u903B\u8F91\u8109\u7EDC
+  - \u89C4\u5212\u5408\u9002\u7684\u7BC7\u5E45\u548C\u7ED3\u6784\u5C42\u6B21
+3. \u6267\u884C\u6269\u5199
+  - \u4E3A\u6BCF\u4E2A\u8981\u70B9\u6DFB\u52A0\u5177\u4F53\u7EC6\u8282\u3001\u4F8B\u8BC1\u548C\u89E3\u91CA
+  - \u589E\u52A0\u80CC\u666F\u4FE1\u606F\u3001\u76F8\u5173\u6570\u636E\u548C\u6848\u4F8B\u5206\u6790
+  - \u5B8C\u5584\u6BB5\u843D\u95F4\u7684\u8FC7\u6E21\u548C\u8FDE\u63A5
+  - \u4E30\u5BCC\u8BCD\u6C47\u8868\u8FBE\u548C\u53E5\u5F0F\u53D8\u5316
+4. \u8D28\u91CF\u68C0\u67E5
+  - \u786E\u4FDD\u6269\u5199\u5185\u5BB9\u4E0E\u539F\u6587\u4E3B\u9898\u4E00\u81F4
+  - \u9A8C\u8BC1\u903B\u8F91\u6D41\u7A0B\u7684\u8FDE\u8D2F\u6027
+  - \u68C0\u67E5\u4FE1\u606F\u7684\u51C6\u786E\u6027\u548C\u5B8C\u6574\u6027
+
+### \u6269\u5199\u6280\u5DE7
+- **\u7EC6\u8282\u4E30\u5BCC\u5316**\uFF1A\u4E3A\u62BD\u8C61\u6982\u5FF5\u6DFB\u52A0\u5177\u4F53\u63CF\u8FF0\u548C\u5B9E\u4F8B
+- **\u5C42\u6B21\u6DF1\u5165\u5316**\uFF1A\u5C06\u6D45\u5C42\u8868\u8FF0\u53D1\u5C55\u4E3A\u591A\u5C42\u6B21\u8BBA\u8FF0
+- **\u80CC\u666F\u8865\u5145**\uFF1A\u589E\u52A0\u76F8\u5173\u7684\u5386\u53F2\u80CC\u666F\u3001\u73B0\u72B6\u5206\u6790\u6216\u53D1\u5C55\u8D8B\u52BF
+- **\u6848\u4F8B\u4E3E\u4F8B**\uFF1A\u63D2\u5165\u6070\u5F53\u7684\u6848\u4F8B\u3001\u6570\u636E\u6216\u5F15\u7528\u6765\u652F\u6491\u89C2\u70B9
+- **\u903B\u8F91\u5B8C\u5584**\uFF1A\u8865\u5145\u7F3A\u5931\u7684\u63A8\u7406\u8FC7\u7A0B\u548C\u8BBA\u8BC1\u73AF\u8282
+- **\u8868\u8FBE\u591A\u6837\u5316**\uFF1A\u4F7F\u7528\u540C\u4E49\u8BCD\u66FF\u6362\u548C\u53E5\u5F0F\u53D8\u5316\u907F\u514D\u91CD\u590D
+
+### \u6CE8\u610F\u4E8B\u9879
+\u4F60\u5728markdown\u6587\u6863\u4E2D\u5DE5\u4F5C\uFF0C\u786E\u4FDD\u8F93\u51FA\u7684\u662Fmarkdown\u683C\u5F0F\u3002
+\u539F\u6587\u672C\u53EF\u80FD\u5305\u542Bmarkdown\u683C\u5F0F\uFF0C\u4F60\u9700\u8981\u4FDD\u6301\u5E76\u9002\u5F53\u6269\u5C55\u539F\u6587\u672C\u7684markdown\u683C\u5F0F\u3002
+\u6269\u5199\u65F6\u8981\u4FDD\u6301\u539F\u6587\u7684\u98CE\u683C\u548C\u8BED\u8C03\uFF0C\u4E0D\u8981\u504F\u79BB\u539F\u6709\u7684\u8868\u8FBE\u65B9\u5F0F\u3002
+\u786E\u4FDD\u6269\u5199\u7684\u5185\u5BB9\u771F\u5B9E\u53EF\u4FE1\uFF0C\u4E0D\u8981\u6DFB\u52A0\u865A\u5047\u4FE1\u606F\u6216\u8FC7\u5EA6\u5938\u5F20\u7684\u8868\u8FF0\u3002
+
+### \u8F93\u51FA\u8981\u6C42
+\u76F4\u63A5\u8FD4\u56DE\u6269\u5199\u540E\u7684\u6587\u672C\uFF0C\u9664\u6B64\u4E4B\u5916\u4E0D\u8981\u8FD4\u56DE\u4EFB\u4F55\u89E3\u91CA\u6027\u7B49\u6587\u5B57:`,
     icon: "expand",
+    enabled: true
+  },
+  {
+    id: "summary",
+    name: "\u6458\u8981",
+    prompt: `\u4F60\u662F\u4E00\u4F4D\u4E13\u4E1A\u7684\u6587\u6848\u7F16\u8F91\uFF0C\u64C5\u957F\u5C06\u957F\u6587\u672C\u5FEB\u901F\u63D0\u70BC\u6210\u7B80\u6D01\u6E05\u6670\u7684\u6838\u5FC3\u8981\u70B9\u3002
+
+### \u5DE5\u4F5C\u6D41\u7A0B
+1. \u5206\u6790\u539F\u6587
+  - \u7406\u89E3\u539F\u6587\u4E3B\u9898\u548C\u6838\u5FC3\u89C2\u70B9
+  - \u8BC6\u522B\u6700\u91CD\u8981\u7684\u4FE1\u606F
+2. \u6267\u884C\u6458\u8981
+  - \u63D0\u53D6\u5173\u952E\u8981\u70B9\u548C\u7ED3\u8BBA
+  - \u7528\u7B80\u6D01\u8BED\u8A00\u91CD\u65B0\u8868\u8FF0
+  - \u53BB\u9664\u6B21\u8981\u7EC6\u8282\u548C\u5197\u4F59\u5185\u5BB9
+3. \u8D28\u91CF\u68C0\u67E5
+  - \u786E\u4FDD\u6458\u8981\u51C6\u786E\u53CD\u6620\u539F\u6587\u4E3B\u65E8
+  - \u68C0\u67E5\u8868\u8FBE\u7684\u6E05\u6670\u6027
+
+### \u6CE8\u610F\u4E8B\u9879
+\u4F60\u5728markdown\u6587\u6863\u4E2D\u5DE5\u4F5C\uFF0C\u786E\u4FDD\u8F93\u51FA\u7684\u662Fmarkdown\u683C\u5F0F\u3002
+
+### \u8F93\u51FA\u8981\u6C42
+\u76F4\u63A5\u8FD4\u56DE\u6458\u8981\u540E\u7684\u6587\u672C\uFF0C\u9664\u6B64\u4E4B\u5916\u4E0D\u8981\u8FD4\u56DE\u4EFB\u4F55\u89E3\u91CA\u6027\u7B49\u6587\u5B57\uFF1A`,
+    icon: "scissors",
     enabled: true
   },
   {
     id: "rewrite",
     name: "\u6539\u5199",
-    prompt: "\u8BF7\u6539\u5199\u4EE5\u4E0B\u6587\u672C\uFF0C\u4FDD\u6301\u539F\u610F\u4E0D\u53D8\uFF0C\u4F46\u4F7F\u7528\u4E0D\u540C\u7684\u8868\u8FBE\u65B9\u5F0F\uFF0C\u4F7F\u8BED\u8A00\u66F4\u52A0\u6D41\u7545\u548C\u4F18\u96C5\uFF1A",
+    prompt: `\u4F60\u662F\u4E00\u4F4D\u4E13\u4E1A\u7684\u81EA\u5A92\u4F53\u6587\u6848\u7F16\u8F91\uFF0C\u64C5\u957F\u5728\u4FDD\u6301\u539F\u6587\u6838\u5FC3\u610F\u601D\u548C\u903B\u8F91\u7ED3\u6784\u7684\u57FA\u7840\u4E0A\uFF0C\u91C7\u7528\u5168\u65B0\u7684\u8868\u8FBE\u65B9\u5F0F\u548C\u8BED\u8A00\u98CE\u683C\u8FDB\u884C\u91CD\u65B0\u521B\u4F5C\uFF0C\u786E\u4FDD\u6539\u5199\u540E\u7684\u6587\u672C\u5177\u6709\u539F\u521B\u6027\u548C\u72EC\u7279\u6027\u3002
+
+### \u5DE5\u4F5C\u6D41\u7A0B
+1. \u6DF1\u5EA6\u5206\u6790\u539F\u6587
+  - \u63D0\u53D6\u6838\u5FC3\u89C2\u70B9\u548C\u5173\u952E\u4FE1\u606F
+  - \u7406\u89E3\u6587\u672C\u7684\u903B\u8F91\u8109\u7EDC\u548C\u8BBA\u8BC1\u7ED3\u6784
+  - \u8BC6\u522B\u4E13\u4E1A\u672F\u8BED\u548C\u5173\u952E\u6982\u5FF5
+2. \u5236\u5B9A\u6539\u5199\u7B56\u7565
+  - \u9009\u62E9\u4E0D\u540C\u7684\u8868\u8FBE\u89D2\u5EA6\u548C\u53D9\u8FF0\u65B9\u5F0F
+  - \u8BBE\u8BA1\u5168\u65B0\u7684\u53E5\u5F0F\u7ED3\u6784\u548C\u6BB5\u843D\u7EC4\u7EC7
+  - \u786E\u5B9A\u5408\u9002\u7684\u8BCD\u6C47\u66FF\u6362\u65B9\u6848
+3. \u6267\u884C\u5168\u9762\u6539\u5199
+  - \u91CD\u6784\u53E5\u5B50\u7ED3\u6784\u548C\u8868\u8FBE\u903B\u8F91
+  - \u4F7F\u7528\u540C\u4E49\u8BCD\u3001\u8FD1\u4E49\u8BCD\u8FDB\u884C\u8BCD\u6C47\u66FF\u6362
+  - \u8C03\u6574\u6BB5\u843D\u987A\u5E8F\u548C\u8BBA\u8FF0\u65B9\u5F0F
+  - \u91C7\u7528\u4E0D\u540C\u7684\u4FEE\u8F9E\u624B\u6CD5\u548C\u8BED\u8A00\u98CE\u683C
+4. \u539F\u521B\u6027\u68C0\u9A8C
+  - \u786E\u4FDD\u8868\u8FBE\u65B9\u5F0F\u5B8C\u5168\u4E0D\u540C\u4E8E\u539F\u6587
+  - \u9A8C\u8BC1\u6838\u5FC3\u610F\u601D\u4FDD\u6301\u51C6\u786E\u4E00\u81F4
+  - \u68C0\u67E5\u8BED\u8A00\u7684\u81EA\u7136\u6D41\u7545\u6027
+
+### \u6539\u5199\u6280\u5DE7
+- **\u53E5\u5F0F\u91CD\u6784**\uFF1A\u5C06\u7B80\u5355\u53E5\u6539\u4E3A\u590D\u5408\u53E5\uFF0C\u6216\u5C06\u590D\u5408\u53E5\u62C6\u5206\u4E3A\u7B80\u5355\u53E5
+- **\u8BED\u6001\u8F6C\u6362**\uFF1A\u4E3B\u52A8\u8BED\u6001\u4E0E\u88AB\u52A8\u8BED\u6001\u7684\u7075\u6D3B\u8F6C\u6362
+- **\u8BCD\u6C47\u66FF\u6362**\uFF1A\u4F7F\u7528\u540C\u4E49\u8BCD\u3001\u4E0A\u4F4D\u8BCD\u3001\u4E0B\u4F4D\u8BCD\u8FDB\u884C\u7CBE\u51C6\u66FF\u6362
+- **\u7ED3\u6784\u8C03\u6574**\uFF1A\u6539\u53D8\u4FE1\u606F\u5448\u73B0\u7684\u5148\u540E\u987A\u5E8F\u548C\u903B\u8F91\u5C42\u6B21
+- **\u89D2\u5EA6\u8F6C\u6362**\uFF1A\u4ECE\u4E0D\u540C\u89C6\u89D2\u91CD\u65B0\u9610\u8FF0\u76F8\u540C\u89C2\u70B9
+- **\u8868\u8FBE\u591A\u6837\u5316**\uFF1A\u8FD0\u7528\u6392\u6BD4\u3001\u5BF9\u6BD4\u3001\u4E3E\u4F8B\u7B49\u591A\u79CD\u4FEE\u8F9E\u624B\u6CD5
+
+### \u6CE8\u610F\u4E8B\u9879
+\u4F60\u5728markdown\u6587\u6863\u4E2D\u5DE5\u4F5C\uFF0C\u786E\u4FDD\u8F93\u51FA\u7684\u662Fmarkdown\u683C\u5F0F\u3002
+
+### \u8F93\u51FA\u8981\u6C42
+\u76F4\u63A5\u8FD4\u56DE\u6539\u5199\u540E\u7684\u6587\u672C\uFF0C\u9664\u6B64\u4E4B\u5916\u4E0D\u8981\u8FD4\u56DE\u4EFB\u4F55\u89E3\u91CA\u6027\u7B49\u6587\u5B57\uFF1A`,
     icon: "edit",
     enabled: true
   },
   {
     id: "translate",
     name: "\u7FFB\u8BD1",
-    prompt: "\u8BF7\u5C06\u4EE5\u4E0B\u6587\u672C\u7FFB\u8BD1\u6210\u82F1\u8BED\uFF0C\u4FDD\u6301\u539F\u610F\u548C\u8BED\u6C14\uFF1A",
+    prompt: `\u4F60\u662F\u4E00\u4E2A\u4E13\u4E1A\u7684\u4E2D\u82F1\u7FFB\u8BD1\u4E13\u5BB6\uFF0C\u64C5\u957F\u4E2D\u82F1\u6587\u6587\u672C\u4E92\u8BD1\u3002
+
+### \u7FFB\u8BD1\u8981\u6C42
+1. \u8BC6\u522B\u539F\u6587\u662F\u4E2D\u6587\u8FD8\u662F\u82F1\u6587\uFF0C\u5982\u679C\u662F\u4E2D\u6587\uFF0C\u5219\u7FFB\u8BD1\u6210\u82F1\u6587\uFF0C\u5982\u679C\u662F\u82F1\u6587\uFF0C\u5219\u7FFB\u8BD1\u6210\u4E2D\u6587\u3002
+2. \u7406\u89E3\u5168\u6587\u610F\u601D\u518D\u8FDB\u884C\u7FFB\u8BD1\u3002
+3. \u91C7\u7528\u610F\u8BD1\u7684\u5F62\u5F0F\uFF0C\u6CE8\u91CD\u4E0D\u540C\u6587\u5316\u7684\u8BED\u8A00\u8868\u8FBE\u4E60\u60EF\uFF0C\u7FFB\u8BD1\u6210\u4F18\u7F8E\u7684\u6587\u6848\u3002
+
+### \u6CE8\u610F\u4E8B\u9879
+\u4F60\u5728markdown\u6587\u6863\u4E2D\u5DE5\u4F5C\uFF0C\u786E\u4FDD\u7FFB\u8BD1\u7ED3\u679C\u4E0D\u7834\u574F\u4E4B\u524D\u7684markdown\u7ED3\u6784
+
+### \u8F93\u51FA\u8981\u6C42
+\u76F4\u63A5\u8FD4\u56DE\u7FFB\u8BD1\u540E\u7684\u6587\u672C\uFF0C\u9664\u6B64\u4E4B\u5916\u4E0D\u8981\u8FD4\u56DE\u4EFB\u4F55\u89E3\u91CA\u6027\u7B49\u6587\u5B57\uFF1A
+		`,
     icon: "globe",
     enabled: true
   }
@@ -24824,12 +25102,13 @@ var DEFAULT_SETTINGS = {
 init_api();
 
 // src/FloatingAIManager.ts
-var import_obsidian2 = require("obsidian");
+var import_obsidian3 = require("obsidian");
 var import_client = __toESM(require_client());
 var import_react2 = __toESM(require_react());
 
 // src/components/FloatingAIButton.tsx
 var import_react = __toESM(require_react());
+var import_obsidian2 = require("obsidian");
 var import_jsx_runtime = __toESM(require_jsx_runtime());
 var FloatingAIButton = ({
   editor,
@@ -24841,6 +25120,27 @@ var FloatingAIButton = ({
   isProcessing = false,
   selectedText: propSelectedText = ""
 }) => {
+  const LucideIcon = ({ name, size = 16 }) => {
+    const ref = (0, import_react.useRef)(null);
+    (0, import_react.useEffect)(() => {
+      if (ref.current) {
+        (0, import_obsidian2.setIcon)(ref.current, name);
+      }
+    }, [name]);
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+      "span",
+      {
+        ref,
+        style: {
+          display: "inline-flex",
+          width: `${size}px`,
+          height: `${size}px`,
+          alignItems: "center",
+          justifyContent: "center"
+        }
+      }
+    );
+  };
   const [isExpanded, setIsExpanded] = (0, import_react.useState)(false);
   const [selectedText, setSelectedText] = (0, import_react.useState)("");
   (0, import_react.useEffect)(() => {
@@ -24950,26 +25250,7 @@ var FloatingAIButton = ({
             onClick: () => handleTemplateSelect(template),
             title: template.prompt,
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { className: "floating-ai-menu-item-icon", children: [
-                template.icon === "expand" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.5", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M12 8v8m-4-4h8" })
-                ] }),
-                template.icon === "edit" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.5", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" })
-                ] }),
-                template.icon === "globe" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.5", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", { cx: "12", cy: "12", r: "10" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("line", { x1: "2", y1: "12", x2: "22", y2: "12" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" })
-                ] }),
-                template.icon === "bot" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", { width: "16", height: "16", viewBox: "0 0 1024 1024", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M291.584 806.314667c-13.909333 0-25.6-11.690667-25.6-25.6v-145.92c0-135.68 110.336-246.016 246.016-246.016s246.016 110.336 246.016 246.016v145.92c0 13.909333-11.690667 25.6-25.6 25.6H291.584z", fill: "currentColor", opacity: "0.8" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M627.114667 626.517333c-18.773333 0-34.133333-15.36-34.133334-34.133333v-36.096c0-18.773333 15.36-34.133333 34.133334-34.133333s34.133333 15.36 34.133333 34.133333v36.096c0 18.773333-15.36 34.133333-34.133333 34.133333zM396.885333 626.517333c-18.773333 0-34.133333-15.36-34.133333-34.133333v-36.096c0-18.773333 15.36-34.133333 34.133333-34.133333s34.133333 15.36 34.133334 34.133333v36.096c0 18.773333-15.36 34.133333-34.133334 34.133333z", fill: "currentColor" }),
-                  /* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", { d: "M580.266667 794.88H443.733333c-18.773333 0-34.133333-15.36-34.133333-34.133333V759.466667c0-18.773333 15.36-34.133333 34.133333-34.133334h136.533334c18.773333 0 34.133333 15.36 34.133333 34.133334v1.28c0 18.773333-15.36 34.133333-34.133333 34.133333z", fill: "currentColor" })
-                ] })
-              ] }),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "floating-ai-menu-item-icon", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LucideIcon, { name: template.icon || "bot", size: 16 }) }),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { className: "floating-ai-menu-item-text", children: template.name })
             ]
           },
@@ -25028,7 +25309,7 @@ var FloatingAIManager = class {
   }
   // 处理工作区叶子变化
   handleLeafChange(leaf) {
-    if ((leaf == null ? void 0 : leaf.view) instanceof import_obsidian2.MarkdownView) {
+    if ((leaf == null ? void 0 : leaf.view) instanceof import_obsidian3.MarkdownView) {
       this.currentEditor = leaf.view.editor;
     } else {
       this.currentEditor = null;
@@ -25240,7 +25521,7 @@ var FloatingAIManager = class {
 };
 
 // src/InlineDiffManager.ts
-var import_obsidian3 = require("obsidian");
+var import_obsidian4 = require("obsidian");
 var import_client2 = __toESM(require_client());
 var import_react5 = __toESM(require_react());
 
@@ -25423,7 +25704,7 @@ var InlineDiffManager = class {
     const session = this.activeSessions.get(sessionId);
     if (!session)
       return;
-    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian3.MarkdownView);
+    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
     if (activeView) {
       const editor = activeView.editor;
       editor.setSelection(session.originalFrom, session.originalTo);
@@ -25451,7 +25732,7 @@ var InlineDiffManager = class {
   }
   // 获取编辑器视图
   getEditorView(editor) {
-    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian3.MarkdownView);
+    const activeView = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
     return (activeView == null ? void 0 : activeView.editor) === editor ? activeView : null;
   }
   // 清理所有活动会话
@@ -25464,7 +25745,7 @@ var InlineDiffManager = class {
 };
 
 // src/view.tsx
-var import_obsidian4 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 var import_client3 = __toESM(require_client());
 var import_react6 = __toESM(require_react());
 init_api();
@@ -25939,7 +26220,7 @@ ${convoText}
     }
   );
 };
-var SimpleAIView = class extends import_obsidian4.ItemView {
+var SimpleAIView = class extends import_obsidian5.ItemView {
   constructor(leaf, plugin) {
     super(leaf);
     this.root = null;
@@ -25968,7 +26249,7 @@ var SimpleAIView = class extends import_obsidian4.ItemView {
           api: this.api,
           getEditor: () => {
             var _a, _b, _c;
-            return (_c = (_b = this.editor) != null ? _b : (_a = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView)) == null ? void 0 : _a.editor) != null ? _c : null;
+            return (_c = (_b = this.editor) != null ? _b : (_a = this.app.workspace.getActiveViewOfType(import_obsidian5.MarkdownView)) == null ? void 0 : _a.editor) != null ? _c : null;
           }
         }
       )
@@ -25987,7 +26268,7 @@ var SimpleAIView = class extends import_obsidian4.ItemView {
     this.editor = editor;
   }
 };
-var DocPickerModal = class extends import_obsidian4.Modal {
+var DocPickerModal = class extends import_obsidian5.Modal {
   constructor(app, root, preselected, onConfirm) {
     super(app);
     this.query = "";
@@ -26029,9 +26310,9 @@ var DocPickerModal = class extends import_obsidian4.Modal {
       const chosen = [];
       const collect = (folder) => {
         folder.children.forEach((child) => {
-          if (child instanceof import_obsidian4.TFolder)
+          if (child instanceof import_obsidian5.TFolder)
             collect(child);
-          else if (child instanceof import_obsidian4.TFile) {
+          else if (child instanceof import_obsidian5.TFile) {
             if (this.selected.has(child.path))
               chosen.push(child);
           }
@@ -26046,9 +26327,9 @@ var DocPickerModal = class extends import_obsidian4.Modal {
       const renderFolder = (folder, depth) => {
         const matchesFolder = folder.name.toLowerCase().includes(this.query);
         const matchingChildren = folder.children.filter((c) => {
-          if (c instanceof import_obsidian4.TFolder)
+          if (c instanceof import_obsidian5.TFolder)
             return true;
-          if (c instanceof import_obsidian4.TFile)
+          if (c instanceof import_obsidian5.TFile)
             return c.basename.toLowerCase().includes(this.query);
           return false;
         });
@@ -26090,11 +26371,11 @@ var DocPickerModal = class extends import_obsidian4.Modal {
         if (!this.expanded.has(folder.path))
           return;
         folder.children.forEach((child) => {
-          if (child instanceof import_obsidian4.TFolder) {
+          if (child instanceof import_obsidian5.TFolder) {
             if (this.query) {
             }
             renderFolder(child, depth + 1);
-          } else if (child instanceof import_obsidian4.TFile) {
+          } else if (child instanceof import_obsidian5.TFile) {
             if (this.query && !child.basename.toLowerCase().includes(this.query))
               return;
             const row = listContainer.createDiv();
@@ -26124,7 +26405,7 @@ var DocPickerModal = class extends import_obsidian4.Modal {
 };
 
 // main.ts
-var SimpleAIPlugin = class extends import_obsidian5.Plugin {
+var SimpleAIPlugin = class extends import_obsidian6.Plugin {
   constructor() {
     super(...arguments);
     this.floatingAIManager = null;
@@ -26200,11 +26481,11 @@ var SimpleAIPlugin = class extends import_obsidian5.Plugin {
   async handleFloatingButtonTemplateSelect(template, selectedText) {
     var _a, _b, _c;
     if (!this.settings.apiKey) {
-      new import_obsidian5.Notice("\u8BF7\u5148\u5728\u8BBE\u7F6E\u4E2D\u914D\u7F6EAPI\u5BC6\u94A5");
+      new import_obsidian6.Notice("\u8BF7\u5148\u5728\u8BBE\u7F6E\u4E2D\u914D\u7F6EAPI\u5BC6\u94A5");
       return;
     }
     if (!selectedText.trim()) {
-      new import_obsidian5.Notice("\u6CA1\u6709\u53EF\u5904\u7406\u7684\u6587\u672C\u5185\u5BB9");
+      new import_obsidian6.Notice("\u6CA1\u6709\u53EF\u5904\u7406\u7684\u6587\u672C\u5185\u5BB9");
       return;
     }
     (_a = this.floatingAIManager) == null ? void 0 : _a.setProcessing(true);
@@ -26215,7 +26496,7 @@ var SimpleAIPlugin = class extends import_obsidian5.Plugin {
         aiResult += chunk;
       });
       (_b = this.floatingAIManager) == null ? void 0 : _b.setProcessing(false);
-      const activeView = this.app.workspace.getActiveViewOfType(import_obsidian5.MarkdownView);
+      const activeView = this.app.workspace.getActiveViewOfType(import_obsidian6.MarkdownView);
       if (activeView && this.inlineDiffManager) {
         const editor = activeView.editor;
         await this.inlineDiffManager.showInlineDiff(
@@ -26228,7 +26509,7 @@ var SimpleAIPlugin = class extends import_obsidian5.Plugin {
     } catch (error) {
       console.error("AI\u5904\u7406\u5931\u8D25:", error);
       (_c = this.floatingAIManager) == null ? void 0 : _c.setProcessing(false);
-      new import_obsidian5.Notice(`${template.name}\u5904\u7406\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`);
+      new import_obsidian6.Notice(`${template.name}\u5904\u7406\u5931\u8D25: ${error instanceof Error ? error.message : "\u672A\u77E5\u9519\u8BEF"}`);
     }
   }
 };

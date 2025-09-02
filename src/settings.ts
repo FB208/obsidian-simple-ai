@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting, Notice, Modal } from 'obsidian';
+import { App, PluginSettingTab, Setting, Notice, Modal, setIcon } from 'obsidian';
 import SimpleAIPlugin from '../main';
 import { AITemplate } from './types';
 
@@ -260,14 +260,43 @@ class TemplateEditModal extends Modal {
 				}));
 
 		// 图标
-		new Setting(contentEl)
+		const iconSetting = new Setting(contentEl)
 			.setName('图标')
-			.setDesc('菜单项的图标名称')
-			.addText(text => text
-				.setValue(this.template.icon)
-				.onChange(value => {
-					this.template.icon = value;
-				}));
+			.setDesc('从 Lucide 图标库中选择一个图标');
+
+		// 预览容器
+		const previewContainer = iconSetting.controlEl.createDiv({ cls: 'ai-template-icon-preview' });
+		previewContainer.style.display = 'inline-flex';
+		previewContainer.style.alignItems = 'center';
+		previewContainer.style.gap = '8px';
+		previewContainer.style.marginRight = '8px';
+
+		const previewIcon = previewContainer.createSpan({ cls: 'ai-template-icon-preview-icon' });
+		previewIcon.style.width = '18px';
+		previewIcon.style.height = '18px';
+		previewIcon.style.display = 'inline-flex';
+		previewIcon.style.alignItems = 'center';
+		previewIcon.style.justifyContent = 'center';
+		setIcon(previewIcon, this.template.icon || 'bot');
+
+		const iconNameLabel = previewContainer.createEl('code', { text: this.template.icon || 'bot' });
+		iconNameLabel.style.fontSize = '12px';
+		iconNameLabel.style.opacity = '0.8';
+
+		const openPicker = () => {
+			const picker = new IconPickerModal(this.app, this.template.icon || 'bot', (iconId) => {
+				this.template.icon = iconId;
+				setIcon(previewIcon, iconId);
+				iconNameLabel.textContent = iconId;
+			});
+			picker.open();
+		};
+
+		iconSetting.addButton(btn =>
+			btn
+				.setButtonText('选择图标')
+				.onClick(() => openPicker())
+		);
 
 		// 提示词
 		new Setting(contentEl)
@@ -308,5 +337,101 @@ class TemplateEditModal extends Modal {
 	onClose() {
 		const { contentEl } = this;
 		contentEl.empty();
+	}
+}
+
+// Lucide 图标选择弹窗（可视化选择 + 搜索）
+class IconPickerModal extends Modal {
+	private currentIcon: string;
+	private onSelect: (iconId: string) => void;
+	private query: string = '';
+
+	// 精选一组常用 Lucide 图标（轻量）
+	private readonly ICONS: string[] = [
+		'bot','wand-2','sparkles','stars','cpu','brain','lightbulb','rocket',
+		'pencil','edit-3','highlighter','eraser','scissors','replace','scan-text',
+		'globe','languages','translate','book','book-open','text-cursor-input',
+		'align-left','align-center','align-right','list','list-ordered','list-checks',
+		'check','check-circle','copy','clipboard','clipboard-check','clipboard-edit',
+		'search','zoom-in','zoom-out','maximize','minimize','expand','shrink',
+		'star','bookmark','tag','send','arrow-right','arrow-up-right','arrow-down-right'
+	];
+
+	constructor(app: App, currentIcon: string, onSelect: (iconId: string) => void) {
+		super(app);
+		this.currentIcon = currentIcon;
+		this.onSelect = onSelect;
+	}
+
+	onOpen() {
+		const { contentEl } = this;
+		contentEl.empty();
+
+		contentEl.createEl('h3', { text: '选择图标' });
+		const desc = contentEl.createEl('p', { text: '点击下方任意图标以选择。输入可筛选（支持 Lucide 图标名）。', cls: 'setting-item-description' });
+		desc.style.marginTop = '-6px';
+
+		// 搜索框
+		const searchWrap = contentEl.createDiv();
+		searchWrap.style.display = 'flex';
+		searchWrap.style.gap = '8px';
+		searchWrap.style.margin = '8px 0 12px 0';
+		const searchInput = searchWrap.createEl('input', { type: 'text', placeholder: '搜索图标（例如：pencil, wand-2, languages）' });
+		(searchInput as HTMLInputElement).value = this.query;
+		searchInput.style.width = '100%';
+		searchInput.style.padding = '6px 8px';
+
+		// 图标网格
+		const grid = contentEl.createDiv();
+		grid.style.display = 'grid';
+		grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(120px, 1fr))';
+		grid.style.gap = '8px';
+		grid.style.maxHeight = '380px';
+		grid.style.overflow = 'auto';
+		grid.style.border = '1px solid var(--background-modifier-border)';
+		grid.style.padding = '8px';
+		grid.style.borderRadius = '6px';
+
+		const buildList = () => {
+			grid.empty();
+			const kw = this.query.trim().toLowerCase();
+			const items = this.ICONS.filter(id => !kw || id.includes(kw));
+			items.forEach(id => {
+				const item = grid.createEl('button', { cls: 'icon-option' });
+				item.style.display = 'flex';
+				item.style.alignItems = 'center';
+				item.style.gap = '8px';
+				item.style.padding = '6px 8px';
+				item.style.border = '1px solid var(--background-modifier-border)';
+				item.style.borderRadius = '6px';
+				item.style.background = 'var(--background-primary)';
+				item.style.cursor = 'pointer';
+
+				const iconHolder = item.createSpan();
+				iconHolder.style.width = '18px';
+				iconHolder.style.height = '18px';
+				setIcon(iconHolder, id);
+
+				const nameSpan = item.createEl('span', { text: id });
+				nameSpan.style.fontSize = '12px';
+				nameSpan.style.color = 'var(--text-muted)';
+
+				if (id === this.currentIcon) {
+					item.style.outline = '2px solid var(--interactive-accent)';
+				}
+
+				item.onclick = () => {
+					this.onSelect(id);
+					this.close();
+				};
+			});
+		};
+
+		buildList();
+
+		searchInput.addEventListener('input', () => {
+			this.query = (searchInput as HTMLInputElement).value;
+			buildList();
+		});
 	}
 }

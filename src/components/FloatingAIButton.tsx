@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Editor } from 'obsidian';
+import React, { useState, useEffect, useRef } from 'react';
+import { Editor, setIcon } from 'obsidian';
 import { AITemplate } from '../types';
 
 interface FloatingAIButtonProps {
@@ -24,6 +24,27 @@ export const FloatingAIButton: React.FC<FloatingAIButtonProps> = ({
 	isProcessing = false,
 	selectedText: propSelectedText = ''
 }) => {
+	const LucideIcon: React.FC<{ name: string; size?: number }> = ({ name, size = 16 }) => {
+		const ref = useRef<HTMLSpanElement | null>(null);
+		useEffect(() => {
+			if (ref.current) {
+				setIcon(ref.current, name);
+			}
+		}, [name]);
+		return (
+			<span
+				ref={ref}
+				style={{
+					display: 'inline-flex',
+					width: `${size}px`,
+					height: `${size}px`,
+					alignItems: 'center',
+					justifyContent: 'center'
+				}}
+			/>
+		);
+	};
+
 	const [isExpanded, setIsExpanded] = useState(false);
 	const [selectedText, setSelectedText] = useState('');
 
@@ -148,32 +169,7 @@ export const FloatingAIButton: React.FC<FloatingAIButtonProps> = ({
 							title={template.prompt}
 						>
 							<span className="floating-ai-menu-item-icon">
-								{template.icon === 'expand' && (
-									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-										<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-										<path d="M12 8v8m-4-4h8"/>
-									</svg>
-								)}
-								{template.icon === 'edit' && (
-									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-										<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-										<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-									</svg>
-								)}
-								{template.icon === 'globe' && (
-									<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-										<circle cx="12" cy="12" r="10"/>
-										<line x1="2" y1="12" x2="22" y2="12"/>
-										<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-									</svg>
-								)}
-								{template.icon === 'bot' && (
-									<svg width="16" height="16" viewBox="0 0 1024 1024">
-										<path d="M291.584 806.314667c-13.909333 0-25.6-11.690667-25.6-25.6v-145.92c0-135.68 110.336-246.016 246.016-246.016s246.016 110.336 246.016 246.016v145.92c0 13.909333-11.690667 25.6-25.6 25.6H291.584z" fill="currentColor" opacity="0.8" />
-										<path d="M627.114667 626.517333c-18.773333 0-34.133333-15.36-34.133334-34.133333v-36.096c0-18.773333 15.36-34.133333 34.133334-34.133333s34.133333 15.36 34.133333 34.133333v36.096c0 18.773333-15.36 34.133333-34.133333 34.133333zM396.885333 626.517333c-18.773333 0-34.133333-15.36-34.133333-34.133333v-36.096c0-18.773333 15.36-34.133333 34.133333-34.133333s34.133333 15.36 34.133334 34.133333v36.096c0 18.773333-15.36 34.133333-34.133334 34.133333z" fill="currentColor" />
-										<path d="M580.266667 794.88H443.733333c-18.773333 0-34.133333-15.36-34.133333-34.133333V759.466667c0-18.773333 15.36-34.133333 34.133333-34.133334h136.533334c18.773333 0 34.133333 15.36 34.133333 34.133334v1.28c0 18.773333-15.36 34.133333-34.133333 34.133333z" fill="currentColor" />
-									</svg>
-								)}
+								<LucideIcon name={template.icon || 'bot'} size={16} />
 							</span>
 							<span className="floating-ai-menu-item-text">
 								{template.name}
