@@ -514,6 +514,10 @@
 	background: var(--background-secondary);
 	border-top: 1px solid var(--background-modifier-border);
 	justify-content: flex-end;
+	position: sticky;
+	bottom: 0;
+	z-index: 2;
+	box-shadow: 0 -4px 12px rgba(0,0,0,0.06);
 }
 
 .diff-action-btn {

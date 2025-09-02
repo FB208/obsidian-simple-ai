@@ -51,13 +51,16 @@ var init_api = __esm({
       }
       // 聊天流式输出（委托到统一 chatCompletion）
       async chatCompletionStream(messages, onChunk) {
-        return this.chatCompletion({
+        const request = {
           model: this.settings.model,
           messages,
           temperature: this.settings.temperature,
-          max_tokens: this.settings.maxTokens,
           stream: true
-        }, onChunk);
+        };
+        if (this.settings.maxTokens && this.settings.maxTokens > 0) {
+          request.max_tokens = this.settings.maxTokens;
+        }
+        return this.chatCompletion(request, onChunk);
       }
       // 更新设置
       updateSettings(settings) {
@@ -74,9 +77,12 @@ var init_api = __esm({
           model: request.model || this.settings.model,
           messages: request.messages,
           temperature: (_a = request.temperature) != null ? _a : this.settings.temperature,
-          max_tokens: (_b = request.max_tokens) != null ? _b : this.settings.maxTokens,
           stream: true
         };
+        const resolvedMaxTokens = (_b = request.max_tokens) != null ? _b : this.settings.maxTokens;
+        if (resolvedMaxTokens && resolvedMaxTokens > 0) {
+          requestBody.max_tokens = resolvedMaxTokens;
+        }
         try {
           const response = await fetch(url, {
             method: "POST",
@@ -24643,7 +24649,7 @@ var SimpleAISettingTab = class extends import_obsidian.PluginSettingTab {
       this.plugin.settings.temperature = value;
       await this.plugin.saveSettings();
     }));
-    new import_obsidian.Setting(containerEl).setName("\u6700\u5927\u4EE4\u724C\u6570").setDesc("AI\u56DE\u7B54\u7684\u6700\u5927\u957F\u5EA6").addSlider((slider) => slider.setLimits(100, 4e3, 100).setValue(this.plugin.settings.maxTokens).setDynamicTooltip().onChange(async (value) => {
+    new import_obsidian.Setting(containerEl).setName("\u6700\u5927\u4EE4\u724C\u6570").setDesc("AI\u56DE\u7B54\u7684\u6700\u5927\u957F\u5EA6\uFF080 \u8868\u793A\u4E0D\u9650\u5236\uFF09").addSlider((slider) => slider.setLimits(0, 4e3, 100).setValue(this.plugin.settings.maxTokens).setDynamicTooltip().onChange(async (value) => {
       this.plugin.settings.maxTokens = value;
       await this.plugin.saveSettings();
     }));
@@ -24953,7 +24959,8 @@ var DEFAULT_TEMPLATES = [
 
 ### \u6CE8\u610F\u4E8B\u9879
 \u4F60\u5728markdown\u6587\u6863\u4E2D\u5DE5\u4F5C\uFF0C\u786E\u4FDD\u8F93\u51FA\u7684\u662Fmarkdown\u683C\u5F0F\u3002
-\u539F\u6587\u672C\u53EF\u80FD\u5305\u542Bmarkdown\u683C\u5F0F\uFF0C\u4F60\u9700\u8981\u4FDD\u6301\u539F\u6587\u672C\u7684markdown\u683C\u5F0F\u3002
+\u539F\u6587\u4E2D\u53EF\u80FD\u6709markdown\u683C\u5F0F\u7684\u56FE\u7247\u6216\u94FE\u63A5\uFF0C\u4F60\u9700\u8981\u539F\u6837\u8F93\u51FA\uFF0C\u4E0D\u5141\u8BB8\u5220\u9664\u56FE\u7247\u548C\u8FDE\u63A5\u3002
+
 
 ### \u8F93\u51FA\u8981\u6C42
 \u76F4\u63A5\u8FD4\u56DE\u4FEE\u6539\u540E\u7684\u6587\u672C\uFF0C\u9664\u6B64\u4E4B\u5916\u4E0D\u8981\u8FD4\u56DE\u4EFB\u4F55\u89E3\u91CA\u6027\u7B49\u6587\u5B57\uFF1A`,
@@ -24994,7 +25001,7 @@ var DEFAULT_TEMPLATES = [
 
 ### \u6CE8\u610F\u4E8B\u9879
 \u4F60\u5728markdown\u6587\u6863\u4E2D\u5DE5\u4F5C\uFF0C\u786E\u4FDD\u8F93\u51FA\u7684\u662Fmarkdown\u683C\u5F0F\u3002
-\u539F\u6587\u672C\u53EF\u80FD\u5305\u542Bmarkdown\u683C\u5F0F\uFF0C\u4F60\u9700\u8981\u4FDD\u6301\u5E76\u9002\u5F53\u6269\u5C55\u539F\u6587\u672C\u7684markdown\u683C\u5F0F\u3002
+\u539F\u6587\u4E2D\u53EF\u80FD\u6709markdown\u683C\u5F0F\u7684\u56FE\u7247\u6216\u94FE\u63A5\uFF0C\u4F60\u9700\u8981\u539F\u6837\u8F93\u51FA\uFF0C\u4E0D\u5141\u8BB8\u5220\u9664\u56FE\u7247\u548C\u8FDE\u63A5\u3002
 \u6269\u5199\u65F6\u8981\u4FDD\u6301\u539F\u6587\u7684\u98CE\u683C\u548C\u8BED\u8C03\uFF0C\u4E0D\u8981\u504F\u79BB\u539F\u6709\u7684\u8868\u8FBE\u65B9\u5F0F\u3002
 \u786E\u4FDD\u6269\u5199\u7684\u5185\u5BB9\u771F\u5B9E\u53EF\u4FE1\uFF0C\u4E0D\u8981\u6DFB\u52A0\u865A\u5047\u4FE1\u606F\u6216\u8FC7\u5EA6\u5938\u5F20\u7684\u8868\u8FF0\u3002
 
@@ -25062,6 +25069,7 @@ var DEFAULT_TEMPLATES = [
 
 ### \u6CE8\u610F\u4E8B\u9879
 \u4F60\u5728markdown\u6587\u6863\u4E2D\u5DE5\u4F5C\uFF0C\u786E\u4FDD\u8F93\u51FA\u7684\u662Fmarkdown\u683C\u5F0F\u3002
+\u539F\u6587\u4E2D\u53EF\u80FD\u6709markdown\u683C\u5F0F\u7684\u56FE\u7247\u6216\u94FE\u63A5\uFF0C\u4F60\u9700\u8981\u539F\u6837\u8F93\u51FA\uFF0C\u4E0D\u5141\u8BB8\u5220\u9664\u56FE\u7247\u548C\u8FDE\u63A5\u3002
 
 ### \u8F93\u51FA\u8981\u6C42
 \u76F4\u63A5\u8FD4\u56DE\u6539\u5199\u540E\u7684\u6587\u672C\uFF0C\u9664\u6B64\u4E4B\u5916\u4E0D\u8981\u8FD4\u56DE\u4EFB\u4F55\u89E3\u91CA\u6027\u7B49\u6587\u5B57\uFF1A`,
@@ -25079,7 +25087,8 @@ var DEFAULT_TEMPLATES = [
 3. \u91C7\u7528\u610F\u8BD1\u7684\u5F62\u5F0F\uFF0C\u6CE8\u91CD\u4E0D\u540C\u6587\u5316\u7684\u8BED\u8A00\u8868\u8FBE\u4E60\u60EF\uFF0C\u7FFB\u8BD1\u6210\u4F18\u7F8E\u7684\u6587\u6848\u3002
 
 ### \u6CE8\u610F\u4E8B\u9879
-\u4F60\u5728markdown\u6587\u6863\u4E2D\u5DE5\u4F5C\uFF0C\u786E\u4FDD\u7FFB\u8BD1\u7ED3\u679C\u4E0D\u7834\u574F\u4E4B\u524D\u7684markdown\u7ED3\u6784
+\u4F60\u5728markdown\u6587\u6863\u4E2D\u5DE5\u4F5C\uFF0C\u786E\u4FDD\u7FFB\u8BD1\u7ED3\u679C\u4E0D\u7834\u574F\u4E4B\u524D\u7684markdown\u7ED3\u6784\u3002
+\u539F\u6587\u4E2D\u53EF\u80FD\u6709markdown\u683C\u5F0F\u7684\u56FE\u7247\u6216\u94FE\u63A5\uFF0C\u4F60\u9700\u8981\u539F\u6837\u8F93\u51FA\uFF0C\u4E0D\u5141\u8BB8\u5220\u9664\u56FE\u7247\u548C\u8FDE\u63A5\u3002
 
 ### \u8F93\u51FA\u8981\u6C42
 \u76F4\u63A5\u8FD4\u56DE\u7FFB\u8BD1\u540E\u7684\u6587\u672C\uFF0C\u9664\u6B64\u4E4B\u5916\u4E0D\u8981\u8FD4\u56DE\u4EFB\u4F55\u89E3\u91CA\u6027\u7B49\u6587\u5B57\uFF1A

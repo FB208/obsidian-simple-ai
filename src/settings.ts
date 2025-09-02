@@ -74,9 +74,9 @@ export class SimpleAISettingTab extends PluginSettingTab {
 		// 最大令牌数设置
 		new Setting(containerEl)
 			.setName('最大令牌数')
-			.setDesc('AI回答的最大长度')
+			.setDesc('AI回答的最大长度（0 表示不限制）')
 			.addSlider(slider => slider
-				.setLimits(100, 4000, 100)
+				.setLimits(0, 4000, 100)
 				.setValue(this.plugin.settings.maxTokens)
 				.setDynamicTooltip()
 				.onChange(async (value) => {

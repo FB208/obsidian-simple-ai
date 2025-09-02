@@ -44,7 +44,8 @@ export const DEFAULT_TEMPLATES: AITemplate[] = [
 
 ### 注意事项
 你在markdown文档中工作，确保输出的是markdown格式。
-原文本可能包含markdown格式，你需要保持原文本的markdown格式。
+原文中可能有markdown格式的图片或链接，你需要原样输出，不允许删除图片和连接。
+
 
 ### 输出要求
 直接返回修改后的文本，除此之外不要返回任何解释性等文字：`,
@@ -85,7 +86,7 @@ export const DEFAULT_TEMPLATES: AITemplate[] = [
 
 ### 注意事项
 你在markdown文档中工作，确保输出的是markdown格式。
-原文本可能包含markdown格式，你需要保持并适当扩展原文本的markdown格式。
+原文中可能有markdown格式的图片或链接，你需要原样输出，不允许删除图片和连接。
 扩写时要保持原文的风格和语调，不要偏离原有的表达方式。
 确保扩写的内容真实可信，不要添加虚假信息或过度夸张的表述。
 
@@ -153,6 +154,7 @@ export const DEFAULT_TEMPLATES: AITemplate[] = [
 
 ### 注意事项
 你在markdown文档中工作，确保输出的是markdown格式。
+原文中可能有markdown格式的图片或链接，你需要原样输出，不允许删除图片和连接。
 
 ### 输出要求
 直接返回改写后的文本，除此之外不要返回任何解释性等文字：`,
@@ -170,7 +172,8 @@ export const DEFAULT_TEMPLATES: AITemplate[] = [
 3. 采用意译的形式，注重不同文化的语言表达习惯，翻译成优美的文案。
 
 ### 注意事项
-你在markdown文档中工作，确保翻译结果不破坏之前的markdown结构
+你在markdown文档中工作，确保翻译结果不破坏之前的markdown结构。
+原文中可能有markdown格式的图片或链接，你需要原样输出，不允许删除图片和连接。
 
 ### 输出要求
 直接返回翻译后的文本，除此之外不要返回任何解释性等文字：

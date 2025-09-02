@@ -10,13 +10,16 @@ export class OpenAIAPI {
 
 	// 聊天流式输出（委托到统一 chatCompletion）
 	async chatCompletionStream(messages: ChatMessage[], onChunk: (chunk: string) => void): Promise<string> {
-		return this.chatCompletion({
+		const request: ChatCompletionRequest = {
 			model: this.settings.model,
 			messages,
 			temperature: this.settings.temperature,
-			max_tokens: this.settings.maxTokens,
 			stream: true
-		}, onChunk);
+		};
+		if (this.settings.maxTokens && this.settings.maxTokens > 0) {
+			request.max_tokens = this.settings.maxTokens;
+		}
+		return this.chatCompletion(request, onChunk);
 	}
 
 	// 更新设置
@@ -32,13 +35,18 @@ export class OpenAIAPI {
 
 		const url = `${this.settings.baseUrl.replace(/\/$/, '')}/chat/completions`;
 
-		const requestBody = {
+		const requestBody: any = {
 			model: request.model || this.settings.model,
 			messages: request.messages,
 			temperature: request.temperature ?? this.settings.temperature,
-			max_tokens: request.max_tokens ?? this.settings.maxTokens,
 			stream: true
 		};
+
+		// 兼容“0 表示不限制”：为 0 时不要发送 max_tokens 字段
+		const resolvedMaxTokens = request.max_tokens ?? this.settings.maxTokens;
+		if (resolvedMaxTokens && resolvedMaxTokens > 0) {
+			requestBody.max_tokens = resolvedMaxTokens;
+		}
 
 		try {
 			const response = await fetch(url, {
