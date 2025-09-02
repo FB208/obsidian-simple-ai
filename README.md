@@ -1,6 +1,6 @@
 # Simple AI
 
-一个极简易用的 Obsidian AI 文本编辑助手，类似 Notion AI。选中文本即可调用 AI 进行编辑。
+一个极简易用的 AI 文本编辑助手，类似 Notion AI。选中文本即可调用 AI 进行编辑。
 
 ## 使用
 
