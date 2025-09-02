@@ -1,6 +1,8 @@
 import esbuild from "esbuild";
 import process from "process";
 import builtins from "builtin-modules";
+import path from "path";
+import fs from "fs";
 
 const banner =
 `/*
@@ -10,6 +12,7 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const prod = (process.argv[2] === 'production');
+const outDir = 'dist';
 
 const context = await esbuild.context({
 	banner: {
@@ -37,14 +40,25 @@ const context = await esbuild.context({
 	logLevel: "info",
 	sourcemap: prod ? false : 'inline',
 	treeShaking: true,
-	outfile: 'main.js',
+	outfile: path.join(outDir, 'main.js'),
 	jsx: 'automatic',
 	jsxImportSource: 'react',
 });
 
+async function copyAssets() {
+	fs.mkdirSync(outDir, { recursive: true });
+	for (const file of ['manifest.json', 'styles.css']) {
+		if (fs.existsSync(file)) {
+			fs.copyFileSync(file, path.join(outDir, file));
+		}
+	}
+}
+
 if (prod) {
 	await context.rebuild();
+	await copyAssets();
 	process.exit(0);
 } else {
+	await copyAssets();
 	await context.watch();
 }

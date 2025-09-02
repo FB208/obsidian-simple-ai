@@ -1290,7 +1290,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useReducer(reducer, initialArg, init);
         }
-        function useRef(initialValue) {
+        function useRef2(initialValue) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
@@ -2084,7 +2084,7 @@ var require_react_development = __commonJS({
         exports.useLayoutEffect = useLayoutEffect;
         exports.useMemo = useMemo2;
         exports.useReducer = useReducer;
-        exports.useRef = useRef;
+        exports.useRef = useRef2;
         exports.useState = useState5;
         exports.useSyncExternalStore = useSyncExternalStore;
         exports.useTransition = useTransition;
@@ -25525,6 +25525,7 @@ var AIChatSidebar = ({ app, api, getEditor }) => {
   const [messages, setMessages] = (0, import_react6.useState)([]);
   const [input, setInput] = (0, import_react6.useState)("");
   const [isSending, setIsSending] = (0, import_react6.useState)(false);
+  const inputRef = (0, import_react6.useRef)(null);
   const [selectedFiles, setSelectedFiles] = (0, import_react6.useState)([]);
   const [selectionPreview, setSelectionPreview] = (0, import_react6.useState)("");
   const [selectionFull, setSelectionFull] = (0, import_react6.useState)("");
@@ -25576,6 +25577,9 @@ var AIChatSidebar = ({ app, api, getEditor }) => {
       return;
     setIsSending(true);
     setMessages((prev) => [...prev, { role: "user", content: prompt }]);
+    setInput("");
+    if (inputRef.current)
+      inputRef.current.focus();
     try {
       const contextParts = [];
       if (selectionFull) {
@@ -25619,7 +25623,6 @@ ${prompt}` : prompt;
       setMessages((prev) => [...prev, { role: "assistant", content: `\u51FA\u9519\uFF1A${msg}` }]);
     } finally {
       setIsSending(false);
-      setInput("");
     }
   };
   const copyToClipboard = async (text) => {
@@ -25707,6 +25710,7 @@ ${prompt}` : prompt;
             rows: 3,
             placeholder: "\u8F93\u5165\u6D88\u606F...",
             style: { border: "none", boxShadow: "none", outline: "none" },
+            ref: inputRef,
             value: input,
             onChange: (e) => setInput(e.target.value),
             onKeyDown: (e) => {
@@ -25715,8 +25719,7 @@ ${prompt}` : prompt;
                 if (!isSending && input.trim())
                   handleSend();
               }
-            },
-            disabled: isSending
+            }
           }
         ),
         /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(

@@ -116,62 +116,7 @@ export class OpenAIAPI {
 		}
 	}
 
-	// 改进文本
-	async improveText(text: string, customPrompt?: string): Promise<string> {
-		const prompt = customPrompt || '请改进以下文本，使其更加清晰、准确和流畅：';
-		
-		return this.chatCompletion({
-			model: this.settings.model,
-			messages: [
-				{ role: 'system', content: this.settings.systemPrompt },
-				{ role: 'user', content: `${prompt}\\n\\n${text}` }
-			]
-		});
-	}
-
-	// 缩短文本
-	async shortenText(text: string): Promise<string> {
-		return this.chatCompletion({
-			model: this.settings.model,
-			messages: [
-				{ role: 'system', content: this.settings.systemPrompt },
-				{ role: 'user', content: `请将以下文本缩短，保持主要信息和观点：\\n\\n${text}` }
-			]
-		});
-	}
-
-	// 扩展文本
-	async expandText(text: string): Promise<string> {
-		return this.chatCompletion({
-			model: this.settings.model,
-			messages: [
-				{ role: 'system', content: this.settings.systemPrompt },
-				{ role: 'user', content: `请扩展以下文本，添加更多细节和解释：\\n\\n${text}` }
-			]
-		});
-	}
-
-	// 翻译文本
-	async translateText(text: string, targetLanguage: string = '英语'): Promise<string> {
-		return this.chatCompletion({
-			model: this.settings.model,
-			messages: [
-				{ role: 'system', content: this.settings.systemPrompt },
-				{ role: 'user', content: `请将以下文本翻译成${targetLanguage}：\\n\\n${text}` }
-			]
-		});
-	}
-
-	// 总结文本
-	async summarizeText(text: string): Promise<string> {
-		return this.chatCompletion({
-			model: this.settings.model,
-			messages: [
-				{ role: 'system', content: this.settings.systemPrompt },
-				{ role: 'user', content: `请总结以下文本的主要内容：\\n\\n${text}` }
-			]
-		});
-	}
+	// （保留）自定义与流式方法；其他便捷方法已移除，统一通过模板/自定义指令调用
 
 	// 自定义处理
 	async customProcess(text: string, instruction: string): Promise<string> {

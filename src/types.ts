@@ -78,18 +78,4 @@ export interface ChatCompletionResponse {
 }
 
 // AI操作类型
-export type AIAction = 
-	| 'improve' 
-	| 'shorten' 
-	| 'expand' 
-	| 'translate' 
-	| 'summarize' 
-	| 'custom';
-
-// AI操作配置
-export interface AIActionConfig {
-	type: AIAction;
-	label: string;
-	prompt: string;
-	icon: string;
-}
+// （已移除）AIAssistantModal 专用的操作类型与配置

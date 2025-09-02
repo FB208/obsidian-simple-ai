@@ -1,6 +1,6 @@
 import { App, ItemView, WorkspaceLeaf, Editor, TFile, TFolder, MarkdownView, Modal } from 'obsidian';
 import { createRoot, Root } from 'react-dom/client';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { OpenAIAPI } from './api';
 import SimpleAIPlugin from '../main';
 
@@ -21,6 +21,7 @@ const AIChatSidebar: React.FC<{
     const [messages, setMessages] = useState<ChatMessageItem[]>([]);
     const [input, setInput] = useState('');
     const [isSending, setIsSending] = useState(false);
+    const inputRef = useRef<HTMLTextAreaElement | null>(null);
     const [selectedFiles, setSelectedFiles] = useState<TFile[]>([]);
     const [selectionPreview, setSelectionPreview] = useState('');
     const [selectionFull, setSelectionFull] = useState('');
@@ -78,6 +79,9 @@ const AIChatSidebar: React.FC<{
         if (!prompt) return;
         setIsSending(true);
         setMessages(prev => [...prev, { role: 'user', content: prompt }]);
+        // 发送后立即清空并保持焦点
+        setInput('');
+        if (inputRef.current) inputRef.current.focus();
 
         try {
             // 聚合上下文：选中文本 + 选中文档内容
@@ -121,7 +125,6 @@ const AIChatSidebar: React.FC<{
             setMessages(prev => [...prev, { role: 'assistant', content: `出错：${msg}` }]);
         } finally {
             setIsSending(false);
-            setInput('');
         }
     };
 
@@ -228,6 +231,7 @@ const AIChatSidebar: React.FC<{
                             rows={3}
                             placeholder="输入消息..."
                             style={{ border: 'none', boxShadow: 'none', outline: 'none' }}
+                            ref={inputRef}
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={(e) => {
@@ -236,7 +240,6 @@ const AIChatSidebar: React.FC<{
                                     if (!isSending && input.trim()) handleSend();
                                 }
                             }}
-                            disabled={isSending}
                         />
                         <button
                             className={`simple-ai-result-btn ${isSending ? 'loading' : 'primary'}`}
