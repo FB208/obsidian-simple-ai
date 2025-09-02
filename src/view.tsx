@@ -22,6 +22,8 @@ const AIChatSidebar: React.FC<{
     const [input, setInput] = useState('');
     const [isSending, setIsSending] = useState(false);
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
+    const messagesScrollRef = useRef<HTMLDivElement | null>(null);
+    const messagesBottomRef = useRef<HTMLDivElement | null>(null);
     const [selectedFiles, setSelectedFiles] = useState<TFile[]>([]);
     const [selectionPreview, setSelectionPreview] = useState('');
     const [selectionFull, setSelectionFull] = useState('');
@@ -31,6 +33,24 @@ const AIChatSidebar: React.FC<{
     useEffect(() => {
         setRootFolder(app.vault.getRoot());
     }, [app]);
+
+    // 对话更新时自动滚动到底部（用户发送 + AI 流式）
+    useEffect(() => {
+        const el = messagesScrollRef.current;
+        const bottom = messagesBottomRef.current;
+        if (!el) return;
+        const doScroll = () => {
+            // 直接设置容器滚动位置
+            el.scrollTop = el.scrollHeight;
+            // 同时使用底部锚点，兼容某些环境的滚动行为
+            if (bottom) bottom.scrollIntoView({ behavior: 'auto', block: 'end' });
+        };
+        // 双 rAF，确保布局与高度变更已完成
+        requestAnimationFrame(() => {
+            doScroll();
+            requestAnimationFrame(doScroll);
+        });
+    }, [messages]);
 
     // 实时同步选中文本（简短预览）
     useEffect(() => {
@@ -141,7 +161,7 @@ const AIChatSidebar: React.FC<{
             </div>
             {/* 对话区 */}
             <div className="simple-ai-content" style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1, minHeight: 0 }}>
-                <div style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--background-modifier-border)', borderRadius: 6, padding: 12, minHeight: 0 }}>
+                <div ref={messagesScrollRef} style={{ flex: 1, overflowY: 'auto', border: '1px solid var(--background-modifier-border)', borderRadius: 6, padding: 12, minHeight: 0 }}>
                     {messages.length === 0 && (
                         <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>开始对话吧，选择文档可作为上下文。</div>
                     )}
@@ -179,6 +199,7 @@ const AIChatSidebar: React.FC<{
                             </div>
                         </div>
                     ))}
+                    <div ref={messagesBottomRef} />
                 </div>
 
                 {/* 上下文区（置于对话与输入之间） */}
