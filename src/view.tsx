@@ -7,11 +7,13 @@ import {
   TFolder,
   MarkdownView,
   Modal,
+  TAbstractFile,
 } from "obsidian";
 import { createRoot, Root } from "react-dom/client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { OpenAIAPI } from "./api";
 import SimpleAIPlugin from "../main";
+import { SimpleAISettings, ChatMessage } from "./types";
 
 export const VIEW_TYPE_SIMPLE_AI = "simple-ai-view";
 
@@ -22,11 +24,14 @@ interface ChatMessageItem {
 
 const MAX_SELECTION_PREVIEW = 300;
 
-const AIChatSidebar: React.FC<{
+interface AIChatSidebarProps {
   app: App;
   api: OpenAIAPI;
   getEditor: () => Editor | null;
-}> = ({ app, api, getEditor }) => {
+  settings: SimpleAISettings;
+}
+
+const AIChatSidebar: React.FC<AIChatSidebarProps> = ({ app, api, getEditor, settings }) => {
   const [messages, setMessages] = useState<ChatMessageItem[]>([]);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -161,25 +166,23 @@ const AIChatSidebar: React.FC<{
         ? unsummarizedMessages
         : prevMessages.map((m) => ({ role: m.role, content: m.content }));
       const systemContent = summary
-        ? `${
-            (api as any).settings.systemPrompt
-          }\n\n【此前对话摘要】\n${summary}`
-        : (api as any).settings.systemPrompt;
+        ? `${settings.systemPrompt}\n\n【此前对话摘要】\n${summary}`
+        : settings.systemPrompt;
       const sendMessages = [
         { role: "system", content: systemContent },
         ...historyPayload,
         { role: "user", content: userMessage },
       ];
 
-      await api.chatCompletionStream(sendMessages as any, (chunk) => {
+      await api.chatCompletionStream(sendMessages as ChatMessage[], (chunk) => {
         setMessages((prev) => {
           const next = [...prev];
           const lastIndex = next.length - 1;
           if (lastIndex >= 0 && next[lastIndex].role === "assistant") {
             next[lastIndex] = {
               role: "assistant",
-              content: (next[lastIndex] as any).content + chunk,
-            } as ChatMessageItem;
+              content: next[lastIndex].content + chunk,
+            };
           }
           return next;
         });
@@ -211,10 +214,10 @@ const AIChatSidebar: React.FC<{
             .join("\n");
           const summarizeInstruction =
             "你将维护一个持续更新的对话摘要。若提供了“此前摘要”，请在其基础上增量更新并去重；否则直接从对话生成摘要。要求：简洁、覆盖主题/关键结论/行动项/未解决问题；100-200字；直接输出摘要内容（简体中文），不要添加任何前缀或标题。";
-          const sys = (api as any).settings.systemPrompt || "";
+          const sys = settings.systemPrompt || "";
           const previousSummary = summary ? `【此前摘要】\n${summary}\n\n` : "";
-          const result = await (api as any).chatCompletion({
-            model: (api as any).settings.model,
+          const result = await api.chatCompletion({
+            model: settings.model,
             messages: [
               { role: "system", content: `${sys}\n\n${summarizeInstruction}` },
               {
@@ -535,9 +538,10 @@ export class SimpleAIView extends ItemView {
         api={this.api}
         getEditor={() =>
           this.editor ??
-          this.app.workspace.getActiveViewOfType<any>(MarkdownView)?.editor ??
+          this.app.workspace.getActiveViewOfType(MarkdownView)?.editor ??
           null
         }
+        settings={this.plugin.settings}
       />
     );
   }
@@ -613,7 +617,7 @@ class DocPickerModal extends Modal {
     okBtn.onclick = () => {
       const chosen: TFile[] = [];
       const collect = (folder: TFolder) => {
-        folder.children.forEach((child: any) => {
+        folder.children.forEach((child: TAbstractFile) => {
           if (child instanceof TFolder) collect(child);
           else if (child instanceof TFile) {
             if (this.selected.has(child.path)) chosen.push(child);
@@ -631,7 +635,7 @@ class DocPickerModal extends Modal {
       const renderFolder = (folder: TFolder, depth: number) => {
         // 过滤：若有查询，仅保留名称或子树中包含匹配文件的文件夹
         const matchesFolder = folder.name.toLowerCase().includes(this.query);
-        const matchingChildren = folder.children.filter((c: any) => {
+        const matchingChildren = folder.children.filter((c: TAbstractFile) => {
           if (c instanceof TFolder) return true; // 递归时判断
           if (c instanceof TFile)
             return c.basename.toLowerCase().includes(this.query);
@@ -676,7 +680,7 @@ class DocPickerModal extends Modal {
 
         if (!this.expanded.has(folder.path)) return;
 
-        folder.children.forEach((child: any) => {
+        folder.children.forEach((child: TAbstractFile) => {
           if (child instanceof TFolder) {
             // 如果有查询时，可选择仅在存在匹配后代时渲染
             if (this.query) {
