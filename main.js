@@ -25897,18 +25897,18 @@ var AIChatSidebar = ({ app, api, getEditor, settings }) => {
       const contextParts = [];
       if (selectionFull) {
         contextParts.push(`\u3010\u5F53\u524D\u9009\u4E2D\u5185\u5BB9\u3011
-${selectionFull}`);
+${selectionFull}
+`);
       }
       if (displayFiles.length > 0) {
         const docs = await Promise.all(
-          displayFiles.map(async (f) => {
+          displayFiles.map(async (f, index) => {
             const content = await app.vault.read(f);
-            return `# ${f.basename}
+            return `\u5173\u8054\u7684\u6587\u6863${index + 1}\uFF1A${f.basename}
 ${content}`;
           })
         );
-        contextParts.push(`\u3010\u9009\u4E2D\u6587\u6863\u3011
-${docs.join("\n\n---\n\n")}`);
+        contextParts.push(docs.join("\n\n"));
       }
       const contextText = contextParts.join("\n\n");
       const userMessage = contextText ? `\u8BF7\u7ED3\u5408\u4EE5\u4E0B\u4E0A\u4E0B\u6587\u56DE\u7B54\uFF1A

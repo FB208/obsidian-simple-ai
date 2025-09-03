@@ -201,16 +201,16 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({ app, api, getEditor, sett
       // 聚合上下文：选中文本 + 选中文档内容
       const contextParts: string[] = [];
       if (selectionFull) {
-        contextParts.push(`【当前选中内容】\n${selectionFull}`);
+        contextParts.push(`【当前选中内容】\n${selectionFull}\n`);
       }
       if (displayFiles.length > 0) {
         const docs = await Promise.all(
-          displayFiles.map(async (f) => {
+          displayFiles.map(async (f, index) => {
             const content = await app.vault.read(f);
-            return `# ${f.basename}\n${content}`;
+            return `关联的文档${index + 1}：${f.basename}\n${content}`;
           })
         );
-        contextParts.push(`【选中文档】\n${docs.join("\n\n---\n\n")}`);
+        contextParts.push(docs.join("\n\n"));
       }
 
       const contextText = contextParts.join("\n\n");
