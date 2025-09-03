@@ -23,6 +23,7 @@ interface ChatMessageItem {
 }
 
 const MAX_SELECTION_PREVIEW = 120;
+const MAX_ADDITIONAL_FILES = 4; // 除了当前活动文档外，最多选择4个文档
 
 interface AIChatSidebarProps {
   app: App;
@@ -172,8 +173,11 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({ app, api, getEditor, sett
     if (!rootFolder) return;
     new DocPickerModal(app, rootFolder, selectedFiles, (files) => {
       setSelectedFiles(files);
-    }).open();
+    }, currentFile).open();
   };
+
+  // 检查是否可以选择更多文档
+  const canSelectMore = selectedFiles.length < MAX_ADDITIONAL_FILES;
 
   const handleClear = () => {
     setMessages([]);
@@ -436,12 +440,22 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({ app, api, getEditor, sett
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div className="simple-ai-input-section">
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <button className="simple-ai-result-btn" onClick={openDocPicker}>
+              <button 
+                className="simple-ai-result-btn" 
+                onClick={openDocPicker}
+                disabled={!canSelectMore}
+                title={canSelectMore ? '选择文档' : `最多只能选择${MAX_ADDITIONAL_FILES}个额外文档`}
+              >
                 选择文档
               </button>
               {displayFiles.length > 0 && (
                 <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
                   ({displayFiles.length} 个文档{currentFile ? '，包含当前文档' : ''})
+                </span>
+              )}
+              {selectedFiles.length >= MAX_ADDITIONAL_FILES && (
+                <span style={{ color: "var(--text-accent)", fontSize: 11 }}>
+                  已达上限
                 </span>
               )}
             </div>
@@ -660,24 +674,48 @@ class DocPickerModal extends Modal {
   private onConfirm: (files: TFile[]) => void;
   private query: string = "";
   private expanded: Set<string> = new Set();
+  private currentFile: TFile | null;
 
   constructor(
     app: App,
     root: TFolder,
     preselected: TFile[],
-    onConfirm: (files: TFile[]) => void
+    onConfirm: (files: TFile[]) => void,
+    currentFile: TFile | null = null
   ) {
     super(app);
     this.root = root;
     this.onConfirm = onConfirm;
     this.selected = new Set(preselected.map((f) => f.path));
     this.expanded.add(root.path);
+    this.currentFile = currentFile;
   }
 
   onOpen() {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.createEl("h3", { text: "选择文档" });
+    
+    // 显示限制信息
+    const infoEl = contentEl.createDiv();
+    infoEl.style.marginBottom = "8px";
+    infoEl.style.color = "var(--text-muted)";
+    infoEl.style.fontSize = "12px";
+    
+    // 动态更新计数信息的函数
+    const updateInfoText = () => {
+      const selectedCount = Array.from(this.selected).filter(path => 
+        !this.currentFile || path !== this.currentFile.path
+      ).length;
+      infoEl.textContent = `已选择 ${selectedCount}/${MAX_ADDITIONAL_FILES} 个额外文档${this.currentFile ? '（不包含当前文档）' : ''}`;
+      if (selectedCount >= MAX_ADDITIONAL_FILES) {
+        infoEl.style.color = "var(--text-accent)";
+        infoEl.textContent += " - 已达上限";
+      } else {
+        infoEl.style.color = "var(--text-muted)";
+      }
+    };
+    updateInfoText();
 
     const search = contentEl.createEl("input", {
       type: "text",
@@ -795,11 +833,56 @@ class DocPickerModal extends Modal {
               type: "checkbox",
             }) as HTMLInputElement;
             cb.checked = this.selected.has(child.path);
+            
+            // 检查是否是当前活动文档
+            const isCurrentFile = this.currentFile && child.path === this.currentFile.path;
+            
+            // 检查选择数量限制
+            const selectedCount = Array.from(this.selected).filter(path => 
+              !this.currentFile || path !== this.currentFile.path
+            ).length;
+            
             cb.onchange = () => {
-              if (cb.checked) this.selected.add(child.path);
-              else this.selected.delete(child.path);
+              if (cb.checked) {
+                if (isCurrentFile) {
+                  // 当前文档不计入额外文档数量限制
+                  this.selected.add(child.path);
+                } else {
+                  // 重新计算实时选择数量
+                  const currentSelectedCount = Array.from(this.selected).filter(path => 
+                    !this.currentFile || path !== this.currentFile.path
+                  ).length;
+                  
+                  if (currentSelectedCount < MAX_ADDITIONAL_FILES) {
+                    this.selected.add(child.path);
+                  } else {
+                    cb.checked = false;
+                    return;
+                  }
+                }
+              } else {
+                this.selected.delete(child.path);
+              }
+              
+              // 更新信息显示和重新渲染列表
+              updateInfoText();
+              renderList();
             };
-            row.createEl("span", { text: child.basename });
+            
+            // 如果达到限制且不是当前文档且未选中，禁用复选框
+            if (!isCurrentFile && !cb.checked && selectedCount >= MAX_ADDITIONAL_FILES) {
+              cb.disabled = true;
+              row.style.opacity = "0.5";
+            }
+            const span = row.createEl("span", { text: child.basename });
+            
+            // 如果是当前文档，添加特殊标识
+            if (isCurrentFile) {
+              span.style.fontWeight = "bold";
+              span.style.color = "var(--interactive-accent)";
+              const icon = row.createEl("span", { text: " 📝" });
+              icon.style.fontSize = "12px";
+            }
           }
         });
       };

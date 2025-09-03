@@ -25768,6 +25768,7 @@ init_api();
 var import_jsx_runtime4 = __toESM(require_jsx_runtime());
 var VIEW_TYPE_SIMPLE_AI = "simple-ai-view";
 var MAX_SELECTION_PREVIEW = 120;
+var MAX_ADDITIONAL_FILES = 4;
 var AIChatSidebar = ({ app, api, getEditor, settings }) => {
   const [messages, setMessages] = (0, import_react6.useState)([]);
   const [input, setInput] = (0, import_react6.useState)("");
@@ -25874,8 +25875,9 @@ var AIChatSidebar = ({ app, api, getEditor, settings }) => {
       return;
     new DocPickerModal(app, rootFolder, selectedFiles, (files) => {
       setSelectedFiles(files);
-    }).open();
+    }, currentFile).open();
   };
+  const canSelectMore = selectedFiles.length < MAX_ADDITIONAL_FILES;
   const handleClear = () => {
     setMessages([]);
     setSummary("");
@@ -26136,14 +26138,24 @@ ${convoText}
               /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: 8 }, children: [
                 /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "simple-ai-input-section", children: [
                   /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }, children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { className: "simple-ai-result-btn", onClick: openDocPicker, children: "\u9009\u62E9\u6587\u6863" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                      "button",
+                      {
+                        className: "simple-ai-result-btn",
+                        onClick: openDocPicker,
+                        disabled: !canSelectMore,
+                        title: canSelectMore ? "\u9009\u62E9\u6587\u6863" : `\u6700\u591A\u53EA\u80FD\u9009\u62E9${MAX_ADDITIONAL_FILES}\u4E2A\u989D\u5916\u6587\u6863`,
+                        children: "\u9009\u62E9\u6587\u6863"
+                      }
+                    ),
                     displayFiles.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: { color: "var(--text-muted)", fontSize: 12 }, children: [
                       "(",
                       displayFiles.length,
                       " \u4E2A\u6587\u6863",
                       currentFile ? "\uFF0C\u5305\u542B\u5F53\u524D\u6587\u6863" : "",
                       ")"
-                    ] })
+                    ] }),
+                    selectedFiles.length >= MAX_ADDITIONAL_FILES && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { style: { color: "var(--text-accent)", fontSize: 11 }, children: "\u5DF2\u8FBE\u4E0A\u9650" })
                   ] }),
                   displayFiles.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "doc-tags-container", children: displayFiles.map((file, index) => {
                     const isCurrentFile = currentFile && file.path === currentFile.path;
@@ -26162,7 +26174,7 @@ ${convoText}
                             }
                             removeSelectedFile(file);
                           },
-                          title: isCurrentFile ? "\u5F53\u524D\u6587\u6863\u4E0D\u80FD\u79FB\u9664" : `\u79FB\u9664 ${file.basename}`,
+                          title: isCurrentFile ? "\u6D3B\u52A8\u4E2D\u6587\u6863" : `\u79FB\u9664 ${file.basename}`,
                           style: {
                             opacity: isCurrentFile ? 0.5 : 1,
                             cursor: isCurrentFile ? "not-allowed" : "pointer"
@@ -26351,7 +26363,7 @@ var SimpleAIView = class extends import_obsidian5.ItemView {
   }
 };
 var DocPickerModal = class extends import_obsidian5.Modal {
-  constructor(app, root, preselected, onConfirm) {
+  constructor(app, root, preselected, onConfirm, currentFile = null) {
     super(app);
     this.query = "";
     this.expanded = /* @__PURE__ */ new Set();
@@ -26359,11 +26371,29 @@ var DocPickerModal = class extends import_obsidian5.Modal {
     this.onConfirm = onConfirm;
     this.selected = new Set(preselected.map((f) => f.path));
     this.expanded.add(root.path);
+    this.currentFile = currentFile;
   }
   onOpen() {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.createEl("h3", { text: "\u9009\u62E9\u6587\u6863" });
+    const infoEl = contentEl.createDiv();
+    infoEl.style.marginBottom = "8px";
+    infoEl.style.color = "var(--text-muted)";
+    infoEl.style.fontSize = "12px";
+    const updateInfoText = () => {
+      const selectedCount = Array.from(this.selected).filter(
+        (path) => !this.currentFile || path !== this.currentFile.path
+      ).length;
+      infoEl.textContent = `\u5DF2\u9009\u62E9 ${selectedCount}/${MAX_ADDITIONAL_FILES} \u4E2A\u989D\u5916\u6587\u6863${this.currentFile ? "\uFF08\u4E0D\u5305\u542B\u5F53\u524D\u6587\u6863\uFF09" : ""}`;
+      if (selectedCount >= MAX_ADDITIONAL_FILES) {
+        infoEl.style.color = "var(--text-accent)";
+        infoEl.textContent += " - \u5DF2\u8FBE\u4E0A\u9650";
+      } else {
+        infoEl.style.color = "var(--text-muted)";
+      }
+    };
+    updateInfoText();
     const search = contentEl.createEl("input", {
       type: "text",
       attr: { placeholder: "\u641C\u7D22\u6587\u6863..." }
@@ -26470,13 +26500,42 @@ var DocPickerModal = class extends import_obsidian5.Modal {
               type: "checkbox"
             });
             cb.checked = this.selected.has(child.path);
+            const isCurrentFile = this.currentFile && child.path === this.currentFile.path;
+            const selectedCount = Array.from(this.selected).filter(
+              (path) => !this.currentFile || path !== this.currentFile.path
+            ).length;
             cb.onchange = () => {
-              if (cb.checked)
-                this.selected.add(child.path);
-              else
+              if (cb.checked) {
+                if (isCurrentFile) {
+                  this.selected.add(child.path);
+                } else {
+                  const currentSelectedCount = Array.from(this.selected).filter(
+                    (path) => !this.currentFile || path !== this.currentFile.path
+                  ).length;
+                  if (currentSelectedCount < MAX_ADDITIONAL_FILES) {
+                    this.selected.add(child.path);
+                  } else {
+                    cb.checked = false;
+                    return;
+                  }
+                }
+              } else {
                 this.selected.delete(child.path);
+              }
+              updateInfoText();
+              renderList();
             };
-            row.createEl("span", { text: child.basename });
+            if (!isCurrentFile && !cb.checked && selectedCount >= MAX_ADDITIONAL_FILES) {
+              cb.disabled = true;
+              row.style.opacity = "0.5";
+            }
+            const span = row.createEl("span", { text: child.basename });
+            if (isCurrentFile) {
+              span.style.fontWeight = "bold";
+              span.style.color = "var(--interactive-accent)";
+              const icon = row.createEl("span", { text: " \u{1F4DD}" });
+              icon.style.fontSize = "12px";
+            }
           }
         });
       };
