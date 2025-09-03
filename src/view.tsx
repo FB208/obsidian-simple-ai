@@ -463,7 +463,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({ app, api, getEditor, sett
                           }
                           removeSelectedFile(file);
                         }}
-                        title={isCurrentFile ? '当前文档不能移除' : `移除 ${file.basename}`}
+                        title={isCurrentFile ? '活动中文档' : `移除 ${file.basename}`}
                         style={{
                           opacity: isCurrentFile ? 0.5 : 1,
                           cursor: isCurrentFile ? 'not-allowed' : 'pointer'
