@@ -45,10 +45,50 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({ app, api, getEditor, sett
   const [selectionPreview, setSelectionPreview] = useState("");
   const [selectionFull, setSelectionFull] = useState("");
   const [rootFolder, setRootFolder] = useState<TFolder | null>(null);
+  const [currentFile, setCurrentFile] = useState<TFile | null>(null);
 
   // 预载根目录用于文档选择弹窗
   useEffect(() => {
     setRootFolder(app.vault.getRoot());
+  }, [app]);
+
+  // 监听当前活动文档变化
+  useEffect(() => {
+    const updateCurrentFile = () => {
+      const activeView = app.workspace.getActiveViewOfType(MarkdownView);
+      if (activeView && activeView.file) {
+        setCurrentFile(activeView.file);
+      }
+      // 注意：这里不设置为null，保持之前的文档状态
+      // 只有在真正有新的MarkdownView文档时才更新
+    };
+
+    // 初始化当前文档
+    updateCurrentFile();
+
+    // 监听叶子变化，但需要区分是文档切换还是焦点切换
+    const handleLeafChange = (leaf: any) => {
+      // 只有当新叶子是MarkdownView且有文件时才更新
+      if (leaf && leaf.view instanceof MarkdownView && leaf.view.file) {
+        setCurrentFile(leaf.view.file);
+      }
+      // 如果切换到其他类型的叶子（如侧边栏），不清空currentFile
+    };
+
+    // 监听文件打开事件
+    const handleFileOpen = (file: any) => {
+      if (file) {
+        setCurrentFile(file);
+      }
+    };
+
+    app.workspace.on('active-leaf-change', handleLeafChange);
+    app.workspace.on('file-open', handleFileOpen);
+
+    return () => {
+      app.workspace.off('active-leaf-change', handleLeafChange);
+      app.workspace.off('file-open', handleFileOpen);
+    };
   }, [app]);
 
   // 对话更新时自动滚动到底部（用户发送 + AI 流式）
@@ -98,9 +138,25 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({ app, api, getEditor, sett
     };
   }, [getEditor]);
 
+  // 获取显示的文件列表（当前文档 + 选中文档，去重）
+  const displayFiles = useMemo(() => {
+    const files = [];
+    
+    // 第一个位置显示当前活动文档
+    if (currentFile) {
+      files.push(currentFile);
+    }
+    
+    // 添加其他选中文档（排除当前文档）
+    const otherFiles = selectedFiles.filter(f => !currentFile || f.path !== currentFile.path);
+    files.push(...otherFiles);
+    
+    return files;
+  }, [currentFile, selectedFiles]);
+
   const selectedFileNames = useMemo(
-    () => selectedFiles.map((f) => f.basename),
-    [selectedFiles]
+    () => displayFiles.map((f) => f.basename),
+    [displayFiles]
   );
 
   const removeSelectedFile = (fileToRemove: TFile) => {
@@ -143,9 +199,9 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({ app, api, getEditor, sett
       if (selectionFull) {
         contextParts.push(`【当前选中内容】\n${selectionFull}`);
       }
-      if (selectedFiles.length > 0) {
+      if (displayFiles.length > 0) {
         const docs = await Promise.all(
-          selectedFiles.map(async (f) => {
+          displayFiles.map(async (f) => {
             const content = await app.vault.read(f);
             return `# ${f.basename}\n${content}`;
           })
@@ -260,7 +316,7 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({ app, api, getEditor, sett
       }}
     >
       <div className="simple-ai-header">
-        <h3>Simple AI 对话</h3>
+        <h3>简单AI</h3>
       </div>
       {/* 对话区 */}
       <div
@@ -383,30 +439,43 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({ app, api, getEditor, sett
               <button className="simple-ai-result-btn" onClick={openDocPicker}>
                 选择文档
               </button>
-              <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
-                ({selectedFiles.length} 个文档)
-              </span>
-            </div>
-            <div className="doc-tags-container">
-              {selectedFiles.length === 0 ? (
-                <div className="doc-tags-empty">暂未选择文档</div>
-              ) : (
-                selectedFiles.map((file) => (
-                  <div key={file.path} className="doc-tag">
-                    <span className="doc-tag-name" title={file.path}>
-                      {file.basename}
-                    </span>
-                    <button
-                      className="doc-tag-remove"
-                      onClick={() => removeSelectedFile(file)}
-                      title={`移除 ${file.basename}`}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))
+              {displayFiles.length > 0 && (
+                <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                  ({displayFiles.length} 个文档{currentFile ? '，包含当前文档' : ''})
+                </span>
               )}
             </div>
+            {displayFiles.length > 0 && (
+              <div className="doc-tags-container">
+                {displayFiles.map((file, index) => {
+                  const isCurrentFile = currentFile && file.path === currentFile.path;
+                  return (
+                    <div key={file.path} className={`doc-tag ${isCurrentFile ? 'current-doc' : ''}`}>
+                      <span className="doc-tag-name" title={file.path}>
+                        {isCurrentFile ? '📝 ' : ''}{file.basename}
+                      </span>
+                      <button
+                        className="doc-tag-remove"
+                        onClick={() => {
+                          if (isCurrentFile) {
+                            // 当前文档不能移除，只能关闭文档
+                            return;
+                          }
+                          removeSelectedFile(file);
+                        }}
+                        title={isCurrentFile ? '当前文档不能移除' : `移除 ${file.basename}`}
+                        style={{
+                          opacity: isCurrentFile ? 0.5 : 1,
+                          cursor: isCurrentFile ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <div className="simple-ai-input-section">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>

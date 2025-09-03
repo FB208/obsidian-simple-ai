@@ -25782,8 +25782,34 @@ var AIChatSidebar = ({ app, api, getEditor, settings }) => {
   const [selectionPreview, setSelectionPreview] = (0, import_react6.useState)("");
   const [selectionFull, setSelectionFull] = (0, import_react6.useState)("");
   const [rootFolder, setRootFolder] = (0, import_react6.useState)(null);
+  const [currentFile, setCurrentFile] = (0, import_react6.useState)(null);
   (0, import_react6.useEffect)(() => {
     setRootFolder(app.vault.getRoot());
+  }, [app]);
+  (0, import_react6.useEffect)(() => {
+    const updateCurrentFile = () => {
+      const activeView = app.workspace.getActiveViewOfType(import_obsidian5.MarkdownView);
+      if (activeView && activeView.file) {
+        setCurrentFile(activeView.file);
+      }
+    };
+    updateCurrentFile();
+    const handleLeafChange = (leaf) => {
+      if (leaf && leaf.view instanceof import_obsidian5.MarkdownView && leaf.view.file) {
+        setCurrentFile(leaf.view.file);
+      }
+    };
+    const handleFileOpen = (file) => {
+      if (file) {
+        setCurrentFile(file);
+      }
+    };
+    app.workspace.on("active-leaf-change", handleLeafChange);
+    app.workspace.on("file-open", handleFileOpen);
+    return () => {
+      app.workspace.off("active-leaf-change", handleLeafChange);
+      app.workspace.off("file-open", handleFileOpen);
+    };
   }, [app]);
   (0, import_react6.useEffect)(() => {
     const el = messagesScrollRef.current;
@@ -25823,9 +25849,18 @@ var AIChatSidebar = ({ app, api, getEditor, settings }) => {
       window.clearInterval(intervalId);
     };
   }, [getEditor]);
+  const displayFiles = (0, import_react6.useMemo)(() => {
+    const files = [];
+    if (currentFile) {
+      files.push(currentFile);
+    }
+    const otherFiles = selectedFiles.filter((f) => !currentFile || f.path !== currentFile.path);
+    files.push(...otherFiles);
+    return files;
+  }, [currentFile, selectedFiles]);
   const selectedFileNames = (0, import_react6.useMemo)(
-    () => selectedFiles.map((f) => f.basename),
-    [selectedFiles]
+    () => displayFiles.map((f) => f.basename),
+    [displayFiles]
   );
   const removeSelectedFile = (fileToRemove) => {
     setSelectedFiles((prev) => prev.filter((f) => f.path !== fileToRemove.path));
@@ -25862,9 +25897,9 @@ var AIChatSidebar = ({ app, api, getEditor, settings }) => {
         contextParts.push(`\u3010\u5F53\u524D\u9009\u4E2D\u5185\u5BB9\u3011
 ${selectionFull}`);
       }
-      if (selectedFiles.length > 0) {
+      if (displayFiles.length > 0) {
         const docs = await Promise.all(
-          selectedFiles.map(async (f) => {
+          displayFiles.map(async (f) => {
             const content = await app.vault.read(f);
             return `# ${f.basename}
 ${content}`;
@@ -25977,7 +26012,7 @@ ${convoText}
         flexDirection: "column"
       },
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "simple-ai-header", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h3", { children: "Simple AI \u5BF9\u8BDD" }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "simple-ai-header", children: /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("h3", { children: "\u7B80\u5355AI" }) }),
         /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
           "div",
           {
@@ -26102,24 +26137,41 @@ ${convoText}
                 /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "simple-ai-input-section", children: [
                   /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }, children: [
                     /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { className: "simple-ai-result-btn", onClick: openDocPicker, children: "\u9009\u62E9\u6587\u6863" }),
-                    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: { color: "var(--text-muted)", fontSize: 12 }, children: [
+                    displayFiles.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: { color: "var(--text-muted)", fontSize: 12 }, children: [
                       "(",
-                      selectedFiles.length,
-                      " \u4E2A\u6587\u6863)"
+                      displayFiles.length,
+                      " \u4E2A\u6587\u6863",
+                      currentFile ? "\uFF0C\u5305\u542B\u5F53\u524D\u6587\u6863" : "",
+                      ")"
                     ] })
                   ] }),
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "doc-tags-container", children: selectedFiles.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "doc-tags-empty", children: "\u6682\u672A\u9009\u62E9\u6587\u6863" }) : selectedFiles.map((file) => /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "doc-tag", children: [
-                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "doc-tag-name", title: file.path, children: file.basename }),
-                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
-                      "button",
-                      {
-                        className: "doc-tag-remove",
-                        onClick: () => removeSelectedFile(file),
-                        title: `\u79FB\u9664 ${file.basename}`,
-                        children: "\xD7"
-                      }
-                    )
-                  ] }, file.path)) })
+                  displayFiles.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "doc-tags-container", children: displayFiles.map((file, index) => {
+                    const isCurrentFile = currentFile && file.path === currentFile.path;
+                    return /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: `doc-tag ${isCurrentFile ? "current-doc" : ""}`, children: [
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { className: "doc-tag-name", title: file.path, children: [
+                        isCurrentFile ? "\u{1F4DD} " : "",
+                        file.basename
+                      ] }),
+                      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                        "button",
+                        {
+                          className: "doc-tag-remove",
+                          onClick: () => {
+                            if (isCurrentFile) {
+                              return;
+                            }
+                            removeSelectedFile(file);
+                          },
+                          title: isCurrentFile ? "\u5F53\u524D\u6587\u6863\u4E0D\u80FD\u79FB\u9664" : `\u79FB\u9664 ${file.basename}`,
+                          style: {
+                            opacity: isCurrentFile ? 0.5 : 1,
+                            cursor: isCurrentFile ? "not-allowed" : "pointer"
+                          },
+                          children: "\xD7"
+                        }
+                      )
+                    ] }, file.path);
+                  }) })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "simple-ai-input-section", children: [
                   /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }, children: [
