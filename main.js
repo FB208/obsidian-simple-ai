@@ -24659,11 +24659,7 @@ var SimpleAISettingTab = class extends import_obsidian.PluginSettingTab {
         await this.plugin.saveSettings();
       });
       text.inputEl.rows = 3;
-      text.inputEl.style.minHeight = "80px";
-      text.inputEl.style.resize = "vertical";
-      text.inputEl.style.fontFamily = "var(--font-monospace)";
-      text.inputEl.style.fontSize = "14px";
-      text.inputEl.style.lineHeight = "1.4";
+      text.inputEl.addClass("ai-settings-textarea");
     });
     new import_obsidian.Setting(containerEl).setName("\u6D4B\u8BD5\u8FDE\u63A5").setDesc("\u6D4B\u8BD5API\u8FDE\u63A5\u662F\u5426\u6B63\u5E38").addButton((button) => button.setButtonText("\u6D4B\u8BD5\u8FDE\u63A5").setCta().onClick(async () => {
       await this.testConnection();
@@ -24761,20 +24757,9 @@ var TemplateEditModal = class extends import_obsidian.Modal {
     }));
     const iconSetting = new import_obsidian.Setting(contentEl).setName("\u56FE\u6807").setDesc("\u4ECE Lucide \u56FE\u6807\u5E93\u4E2D\u9009\u62E9\u4E00\u4E2A\u56FE\u6807");
     const previewContainer = iconSetting.controlEl.createDiv({ cls: "ai-template-icon-preview" });
-    previewContainer.style.display = "inline-flex";
-    previewContainer.style.alignItems = "center";
-    previewContainer.style.gap = "8px";
-    previewContainer.style.marginRight = "8px";
     const previewIcon = previewContainer.createSpan({ cls: "ai-template-icon-preview-icon" });
-    previewIcon.style.width = "18px";
-    previewIcon.style.height = "18px";
-    previewIcon.style.display = "inline-flex";
-    previewIcon.style.alignItems = "center";
-    previewIcon.style.justifyContent = "center";
     (0, import_obsidian.setIcon)(previewIcon, this.template.icon || "bot");
-    const iconNameLabel = previewContainer.createEl("code", { text: this.template.icon || "bot" });
-    iconNameLabel.style.fontSize = "12px";
-    iconNameLabel.style.opacity = "0.8";
+    const iconNameLabel = previewContainer.createEl("code", { text: this.template.icon || "bot", cls: "ai-template-icon-preview-code" });
     const openPicker = () => {
       const picker = new IconPickerModal(this.app, this.template.icon || "bot", (iconId) => {
         this.template.icon = iconId;
@@ -24791,17 +24776,9 @@ var TemplateEditModal = class extends import_obsidian.Modal {
         this.template.prompt = value;
       });
       text.inputEl.rows = 4;
-      text.inputEl.style.minHeight = "100px";
-      text.inputEl.style.resize = "vertical";
-      text.inputEl.style.fontFamily = "var(--font-monospace)";
-      text.inputEl.style.fontSize = "14px";
-      text.inputEl.style.lineHeight = "1.5";
+      text.inputEl.addClass("ai-template-modal-textarea");
     });
     const buttonContainer = contentEl.createDiv("modal-button-container");
-    buttonContainer.style.display = "flex";
-    buttonContainer.style.justifyContent = "flex-end";
-    buttonContainer.style.gap = "10px";
-    buttonContainer.style.marginTop = "20px";
     const cancelButton = buttonContainer.createEl("button", { text: "\u53D6\u6D88" });
     cancelButton.onclick = () => this.close();
     const saveButton = buttonContainer.createEl("button", { text: "\u4FDD\u5B58", cls: "mod-cta" });
@@ -24876,48 +24853,22 @@ var IconPickerModal = class extends import_obsidian.Modal {
     const { contentEl } = this;
     contentEl.empty();
     contentEl.createEl("h3", { text: "\u9009\u62E9\u56FE\u6807" });
-    const desc = contentEl.createEl("p", { text: "\u70B9\u51FB\u4E0B\u65B9\u4EFB\u610F\u56FE\u6807\u4EE5\u9009\u62E9\u3002\u8F93\u5165\u53EF\u7B5B\u9009\uFF08\u652F\u6301 Lucide \u56FE\u6807\u540D\uFF09\u3002", cls: "setting-item-description" });
-    desc.style.marginTop = "-6px";
-    const searchWrap = contentEl.createDiv();
-    searchWrap.style.display = "flex";
-    searchWrap.style.gap = "8px";
-    searchWrap.style.margin = "8px 0 12px 0";
-    const searchInput = searchWrap.createEl("input", { type: "text", placeholder: "\u641C\u7D22\u56FE\u6807\uFF08\u4F8B\u5982\uFF1Apencil, wand-2, languages\uFF09" });
+    const desc = contentEl.createEl("p", { text: "\u70B9\u51FB\u4E0B\u65B9\u4EFB\u610F\u56FE\u6807\u4EE5\u9009\u62E9\u3002\u8F93\u5165\u53EF\u7B5B\u9009\uFF08\u652F\u6301 Lucide \u56FE\u6807\u540D\uFF09\u3002", cls: "setting-item-description icon-picker-description" });
+    const searchWrap = contentEl.createDiv("icon-picker-search-wrapper");
+    const searchInput = searchWrap.createEl("input", { type: "text", placeholder: "\u641C\u7D22\u56FE\u6807\uFF08\u4F8B\u5982\uFF1Apencil, wand-2, languages\uFF09", cls: "icon-picker-search-input" });
     searchInput.value = this.query;
-    searchInput.style.width = "100%";
-    searchInput.style.padding = "6px 8px";
-    const grid = contentEl.createDiv();
-    grid.style.display = "grid";
-    grid.style.gridTemplateColumns = "repeat(auto-fill, minmax(120px, 1fr))";
-    grid.style.gap = "8px";
-    grid.style.maxHeight = "380px";
-    grid.style.overflow = "auto";
-    grid.style.border = "1px solid var(--background-modifier-border)";
-    grid.style.padding = "8px";
-    grid.style.borderRadius = "6px";
+    const grid = contentEl.createDiv("icon-picker-grid");
     const buildList = () => {
       grid.empty();
       const kw = this.query.trim().toLowerCase();
       const items = this.ICONS.filter((id) => !kw || id.includes(kw));
       items.forEach((id) => {
         const item = grid.createEl("button", { cls: "icon-option" });
-        item.style.display = "flex";
-        item.style.alignItems = "center";
-        item.style.gap = "8px";
-        item.style.padding = "6px 8px";
-        item.style.border = "1px solid var(--background-modifier-border)";
-        item.style.borderRadius = "6px";
-        item.style.background = "var(--background-primary)";
-        item.style.cursor = "pointer";
-        const iconHolder = item.createSpan();
-        iconHolder.style.width = "18px";
-        iconHolder.style.height = "18px";
+        const iconHolder = item.createSpan({ cls: "icon-option-holder" });
         (0, import_obsidian.setIcon)(iconHolder, id);
-        const nameSpan = item.createEl("span", { text: id });
-        nameSpan.style.fontSize = "12px";
-        nameSpan.style.color = "var(--text-muted)";
+        const nameSpan = item.createEl("span", { text: id, cls: "icon-option-name" });
         if (id === this.currentIcon) {
-          item.style.outline = "2px solid var(--interactive-accent)";
+          item.addClass("icon-option-current");
         }
         item.onclick = () => {
           this.onSelect(id);
@@ -25817,7 +25768,7 @@ init_api();
 var import_jsx_runtime4 = __toESM(require_jsx_runtime());
 var VIEW_TYPE_SIMPLE_AI = "simple-ai-view";
 var MAX_SELECTION_PREVIEW = 300;
-var AIChatSidebar = ({ app, api, getEditor }) => {
+var AIChatSidebar = ({ app, api, getEditor, settings }) => {
   const [messages, setMessages] = (0, import_react6.useState)([]);
   const [input, setInput] = (0, import_react6.useState)("");
   const [isSending, setIsSending] = (0, import_react6.useState)(false);
@@ -25930,10 +25881,10 @@ ${prompt}` : prompt;
       const summarizedMessageCount = summarizedRounds * 2;
       const unsummarizedMessages = prevMessages.slice(summarizedMessageCount).map((m) => ({ role: m.role, content: m.content }));
       const historyPayload = summary ? unsummarizedMessages : prevMessages.map((m) => ({ role: m.role, content: m.content }));
-      const systemContent = summary ? `${api.settings.systemPrompt}
+      const systemContent = summary ? `${settings.systemPrompt}
 
 \u3010\u6B64\u524D\u5BF9\u8BDD\u6458\u8981\u3011
-${summary}` : api.settings.systemPrompt;
+${summary}` : settings.systemPrompt;
       const sendMessages = [
         { role: "system", content: systemContent },
         ...historyPayload,
@@ -25974,13 +25925,13 @@ ${summary}` : api.settings.systemPrompt;
           const chunk = messages.slice(startIdx, endIdx);
           const convoText = chunk.map((m) => (m.role === "user" ? "\u7528\u6237\uFF1A" : "\u52A9\u624B\uFF1A") + m.content).join("\n");
           const summarizeInstruction = "\u4F60\u5C06\u7EF4\u62A4\u4E00\u4E2A\u6301\u7EED\u66F4\u65B0\u7684\u5BF9\u8BDD\u6458\u8981\u3002\u82E5\u63D0\u4F9B\u4E86\u201C\u6B64\u524D\u6458\u8981\u201D\uFF0C\u8BF7\u5728\u5176\u57FA\u7840\u4E0A\u589E\u91CF\u66F4\u65B0\u5E76\u53BB\u91CD\uFF1B\u5426\u5219\u76F4\u63A5\u4ECE\u5BF9\u8BDD\u751F\u6210\u6458\u8981\u3002\u8981\u6C42\uFF1A\u7B80\u6D01\u3001\u8986\u76D6\u4E3B\u9898/\u5173\u952E\u7ED3\u8BBA/\u884C\u52A8\u9879/\u672A\u89E3\u51B3\u95EE\u9898\uFF1B100-200\u5B57\uFF1B\u76F4\u63A5\u8F93\u51FA\u6458\u8981\u5185\u5BB9\uFF08\u7B80\u4F53\u4E2D\u6587\uFF09\uFF0C\u4E0D\u8981\u6DFB\u52A0\u4EFB\u4F55\u524D\u7F00\u6216\u6807\u9898\u3002";
-          const sys = api.settings.systemPrompt || "";
+          const sys = settings.systemPrompt || "";
           const previousSummary = summary ? `\u3010\u6B64\u524D\u6458\u8981\u3011
 ${summary}
 
 ` : "";
           const result = await api.chatCompletion({
-            model: api.settings.model,
+            model: settings.model,
             messages: [
               { role: "system", content: `${sys}
 
@@ -26315,7 +26266,8 @@ var SimpleAIView = class extends import_obsidian5.ItemView {
           getEditor: () => {
             var _a, _b, _c;
             return (_c = (_b = this.editor) != null ? _b : (_a = this.app.workspace.getActiveViewOfType(import_obsidian5.MarkdownView)) == null ? void 0 : _a.editor) != null ? _c : null;
-          }
+          },
+          settings: this.plugin.settings
         }
       )
     );
