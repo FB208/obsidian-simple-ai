@@ -123,3 +123,6 @@ npm run version
 - **用户体验**: 优雅的动画效果和交互反馈
 - **扩展性**: 基于模板的架构便于功能扩展
 - **兼容性**: 广泛兼容各种OpenAI格式的AI服务
+- 这是一个Obsidian插件项目
+- You should avoid assigning styles via JavaScript or in HTML and instead move all these styles into CSS so that they are more easily adaptable by themes and snippets.
+- Casting to `any` should be avoided as much as possible.
