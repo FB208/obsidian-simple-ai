@@ -25827,6 +25827,9 @@ var AIChatSidebar = ({ app, api, getEditor, settings }) => {
     () => selectedFiles.map((f) => f.basename),
     [selectedFiles]
   );
+  const removeSelectedFile = (fileToRemove) => {
+    setSelectedFiles((prev) => prev.filter((f) => f.path !== fileToRemove.path));
+  };
   const clearSelectionPreview = () => {
     setSelectionPreview("");
     setSelectionFull("");
@@ -26096,25 +26099,28 @@ ${convoText}
                 }
               ),
               /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", flexDirection: "column", gap: 8 }, children: [
-                /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
-                  "div",
-                  {
-                    className: "simple-ai-input-section",
-                    style: {
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      flexWrap: "wrap"
-                    },
-                    children: [
-                      /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { className: "simple-ai-result-btn", onClick: openDocPicker, children: "\u9009\u62E9\u6587\u6863" }),
-                      selectedFileNames.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { color: "var(--text-muted)", fontSize: 12 }, children: [
-                        "\u5DF2\u9009\u62E9\uFF1A",
-                        selectedFileNames.join("\uFF0C")
-                      ] })
-                    ]
-                  }
-                ),
+                /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "simple-ai-input-section", children: [
+                  /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("button", { className: "simple-ai-result-btn", onClick: openDocPicker, children: "\u9009\u62E9\u6587\u6863" }),
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: { color: "var(--text-muted)", fontSize: 12 }, children: [
+                      "(",
+                      selectedFiles.length,
+                      " \u4E2A\u6587\u6863)"
+                    ] })
+                  ] }),
+                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "doc-tags-container", children: selectedFiles.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("div", { className: "doc-tags-empty", children: "\u6682\u672A\u9009\u62E9\u6587\u6863" }) : selectedFiles.map((file) => /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "doc-tag", children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("span", { className: "doc-tag-name", title: file.path, children: file.basename }),
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)(
+                      "button",
+                      {
+                        className: "doc-tag-remove",
+                        onClick: () => removeSelectedFile(file),
+                        title: `\u79FB\u9664 ${file.basename}`,
+                        children: "\xD7"
+                      }
+                    )
+                  ] }, file.path)) })
+                ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "simple-ai-input-section", children: [
                   /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("label", { children: "\u5F53\u524D\u6587\u6863\u9009\u4E2D\u5185\u5BB9\uFF08\u4E0A\u4E0B\u6587\uFF09\uFF1A" }),
                   /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(

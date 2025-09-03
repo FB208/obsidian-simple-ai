@@ -103,6 +103,10 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({ app, api, getEditor, sett
     [selectedFiles]
   );
 
+  const removeSelectedFile = (fileToRemove: TFile) => {
+    setSelectedFiles(prev => prev.filter(f => f.path !== fileToRemove.path));
+  };
+
   const clearSelectionPreview = () => {
     setSelectionPreview("");
     setSelectionFull("");
@@ -374,23 +378,35 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({ app, api, getEditor, sett
 
         {/* 上下文区（置于对话与输入之间） */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div
-            className="simple-ai-input-section"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              flexWrap: "wrap",
-            }}
-          >
-            <button className="simple-ai-result-btn" onClick={openDocPicker}>
-              选择文档
-            </button>
-            {selectedFileNames.length > 0 && (
-              <div style={{ color: "var(--text-muted)", fontSize: 12 }}>
-                已选择：{selectedFileNames.join("，")}
-              </div>
-            )}
+          <div className="simple-ai-input-section">
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <button className="simple-ai-result-btn" onClick={openDocPicker}>
+                选择文档
+              </button>
+              <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                ({selectedFiles.length} 个文档)
+              </span>
+            </div>
+            <div className="doc-tags-container">
+              {selectedFiles.length === 0 ? (
+                <div className="doc-tags-empty">暂未选择文档</div>
+              ) : (
+                selectedFiles.map((file) => (
+                  <div key={file.path} className="doc-tag">
+                    <span className="doc-tag-name" title={file.path}>
+                      {file.basename}
+                    </span>
+                    <button
+                      className="doc-tag-remove"
+                      onClick={() => removeSelectedFile(file)}
+                      title={`移除 ${file.basename}`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
           <div className="simple-ai-input-section">
             <label>当前文档选中内容（上下文）：</label>
