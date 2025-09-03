@@ -25767,7 +25767,7 @@ var import_react6 = __toESM(require_react());
 init_api();
 var import_jsx_runtime4 = __toESM(require_jsx_runtime());
 var VIEW_TYPE_SIMPLE_AI = "simple-ai-view";
-var MAX_SELECTION_PREVIEW = 300;
+var MAX_SELECTION_PREVIEW = 120;
 var AIChatSidebar = ({ app, api, getEditor, settings }) => {
   const [messages, setMessages] = (0, import_react6.useState)([]);
   const [input, setInput] = (0, import_react6.useState)("");
@@ -26122,7 +26122,14 @@ ${convoText}
                   ] }, file.path)) })
                 ] }),
                 /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { className: "simple-ai-input-section", children: [
-                  /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("label", { children: "\u5F53\u524D\u6587\u6863\u9009\u4E2D\u5185\u5BB9\uFF08\u4E0A\u4E0B\u6587\uFF09\uFF1A" }),
+                  /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }, children: [
+                    /* @__PURE__ */ (0, import_jsx_runtime4.jsx)("label", { children: "\u5F53\u524D\u6587\u6863\u9009\u4E2D\u5185\u5BB9\uFF08\u4E0A\u4E0B\u6587\uFF09\uFF1A" }),
+                    selectionFull && /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)("span", { style: { color: "var(--text-muted)", fontSize: 12 }, children: [
+                      "\u5171 ",
+                      selectionFull.length,
+                      " \u4E2A\u5B57\u7B26"
+                    ] })
+                  ] }),
                   /* @__PURE__ */ (0, import_jsx_runtime4.jsxs)(
                     "div",
                     {

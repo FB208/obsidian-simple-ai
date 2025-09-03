@@ -22,7 +22,7 @@ interface ChatMessageItem {
   content: string;
 }
 
-const MAX_SELECTION_PREVIEW = 300;
+const MAX_SELECTION_PREVIEW = 120;
 
 interface AIChatSidebarProps {
   app: App;
@@ -409,7 +409,14 @@ const AIChatSidebar: React.FC<AIChatSidebarProps> = ({ app, api, getEditor, sett
             </div>
           </div>
           <div className="simple-ai-input-section">
-            <label>当前文档选中内容（上下文）：</label>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <label>当前文档选中内容（上下文）：</label>
+              {selectionFull && (
+                <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                  共 {selectionFull.length} 个字符
+                </span>
+              )}
+            </div>
             <div
               style={{
                 border: "1px dashed var(--background-modifier-border)",
