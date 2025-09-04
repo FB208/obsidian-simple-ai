@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting, Notice, Modal, setIcon } from 'obsidian';
 import SimpleAIPlugin from '../main';
-import { AITemplate } from './types';
+import { AITemplate, DEFAULT_TEMPLATES, DEFAULT_SETTINGS } from './types';
 
 // 插件设置页面
 export class SimpleAISettingTab extends PluginSettingTab {
@@ -87,7 +87,7 @@ export class SimpleAISettingTab extends PluginSettingTab {
 		// 系统提示设置
 		new Setting(containerEl)
 			.setName('系统提示')
-			.setDesc('定义AI助手的行为和角色')
+			.setDesc('定义右侧面板中AI助手的行为和角色')
 			.addTextArea(text => {
 				text.setPlaceholder('输入系统提示...')
 					.setValue(this.plugin.settings.systemPrompt)
@@ -99,7 +99,15 @@ export class SimpleAISettingTab extends PluginSettingTab {
 				// 设置textarea样式
 				text.inputEl.rows = 3;
 				text.inputEl.addClass('ai-settings-textarea');
-			});
+			})
+			.addButton(button => button
+				.setButtonText('恢复预设')
+				.onClick(async () => {
+					this.plugin.settings.systemPrompt = DEFAULT_SETTINGS.systemPrompt;
+					await this.plugin.saveSettings();
+					new Notice('已恢复为预设系统提示');
+					this.display();
+				}));
 
 		// 测试连接按钮
 		new Setting(containerEl)
@@ -115,9 +123,22 @@ export class SimpleAISettingTab extends PluginSettingTab {
 		// AI模板设置区域
 		containerEl.createEl('h3', { text: 'AI模板设置' });
 		containerEl.createEl('p', { 
-			text: '配置右键菜单中显示的AI功能模板，可以添加、编辑或删除模板。',
+			text: '悬浮菜单中显示的AI功能模板，可以添加、编辑或删除模板。',
 			cls: 'setting-item-description'
 		});
+
+		// 恢复预设模板按钮
+		new Setting(containerEl)
+			.setName('恢复预设')
+			.setDesc('使用内置预设模板覆盖当前模板配置（将覆盖现有配置）')
+			.addButton(button => button
+				.setButtonText('恢复预设')
+				.onClick(async () => {
+					this.plugin.settings.templates = DEFAULT_TEMPLATES.map(t => ({ ...t }));
+					await this.plugin.saveSettings();
+					new Notice('已恢复为预设模板');
+					this.display();
+				}));
 
 		// 显示现有模板
 		this.displayTemplates(containerEl);
