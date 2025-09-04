@@ -66,6 +66,15 @@ var init_api = __esm({
       updateSettings(settings) {
         this.settings = settings;
       }
+      // 处理文本中的动态占位符（集中管理）
+      resolvePlaceholders(text) {
+        const now = new Date().toLocaleString();
+        return text.replace(/\{\{CURRENT_DATE\}\}/g, now);
+      }
+      // 处理系统提示中的动态占位符
+      getDynamicSystemPrompt() {
+        return this.resolvePlaceholders(this.settings.systemPrompt);
+      }
       // 发送聊天完成请求（统一流式，支持 onChunk；不提供 onChunk 也会聚合返回）
       async chatCompletion(request, onChunk) {
         var _a, _b, _c, _d, _e, _f, _g, _h;
@@ -73,9 +82,15 @@ var init_api = __esm({
           throw new Error("API\u5BC6\u94A5\u672A\u8BBE\u7F6E");
         }
         const url = `${this.settings.baseUrl.replace(/\/$/, "")}/chat/completions`;
+        const resolvedMessages = (request.messages || []).map((m) => {
+          if (m.role === "system") {
+            return { ...m, content: this.resolvePlaceholders(m.content) };
+          }
+          return m;
+        });
         const requestBody = {
           model: request.model || this.settings.model,
-          messages: request.messages,
+          messages: resolvedMessages,
           temperature: (_a = request.temperature) != null ? _a : this.settings.temperature,
           stream: true
         };
@@ -158,7 +173,7 @@ ${errorText}`);
         return this.chatCompletion({
           model: this.settings.model,
           messages: [
-            { role: "system", content: this.settings.systemPrompt },
+            { role: "system", content: this.getDynamicSystemPrompt() },
             { role: "user", content: `${instruction}\\n\\n${text}` }
           ]
         });
@@ -168,7 +183,7 @@ ${errorText}`);
         return this.chatCompletion({
           model: this.settings.model,
           messages: [
-            { role: "system", content: this.settings.systemPrompt },
+            { role: "system", content: this.getDynamicSystemPrompt() },
             { role: "user", content: `${instruction}
 
 ${text}` }
@@ -25056,7 +25071,7 @@ var DEFAULT_SETTINGS = {
   maxTokens: 2e3,
   systemPrompt: `You name is MarkAssistant, created by \u751F\u4EA7\u529BMark.
 
-The current date is ${new Date().toLocaleString()}.
+The current date is {{CURRENT_DATE}}.
 
 MarkAssistant enjoys helping humans and sees its role as an intelligent and kind assistant to the people, with depth and wisdom that makes it more than a mere tool.
 

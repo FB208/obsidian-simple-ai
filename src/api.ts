@@ -27,6 +27,18 @@ export class OpenAIAPI {
 		this.settings = settings;
 	}
 
+	// 处理文本中的动态占位符（集中管理）
+	private resolvePlaceholders(text: string): string {
+		const now = new Date().toLocaleString();
+		return text
+			.replace(/\{\{CURRENT_DATE\}\}/g, now);
+	}
+
+	// 处理系统提示中的动态占位符
+	private getDynamicSystemPrompt(): string {
+		return this.resolvePlaceholders(this.settings.systemPrompt);
+	}
+
 	// 发送聊天完成请求（统一流式，支持 onChunk；不提供 onChunk 也会聚合返回）
 	async chatCompletion(request: ChatCompletionRequest, onChunk?: (chunk: string) => void): Promise<string> {
 		if (!this.settings.apiKey) {
@@ -35,9 +47,17 @@ export class OpenAIAPI {
 
 		const url = `${this.settings.baseUrl.replace(/\/$/, '')}/chat/completions`;
 
+		// 在发送前对 system 消息进行占位符替换
+		const resolvedMessages: ChatMessage[] = (request.messages || []).map((m) => {
+			if (m.role === 'system') {
+				return { ...m, content: this.resolvePlaceholders(m.content) };
+			}
+			return m;
+		});
+
 		const requestBody: any = {
 			model: request.model || this.settings.model,
-			messages: request.messages,
+			messages: resolvedMessages,
 			temperature: request.temperature ?? this.settings.temperature,
 			stream: true
 		};
@@ -131,7 +151,7 @@ export class OpenAIAPI {
 		return this.chatCompletion({
 			model: this.settings.model,
 			messages: [
-				{ role: 'system', content: this.settings.systemPrompt },
+				{ role: 'system', content: this.getDynamicSystemPrompt() },
 				{ role: 'user', content: `${instruction}\\n\\n${text}` }
 			]
 		});
@@ -142,7 +162,7 @@ export class OpenAIAPI {
 		return this.chatCompletion({
 			model: this.settings.model,
 			messages: [
-				{ role: 'system', content: this.settings.systemPrompt },
+				{ role: 'system', content: this.getDynamicSystemPrompt() },
 				{ role: 'user', content: `${instruction}\n\n${text}` }
 			]
 		}, onChunk);
